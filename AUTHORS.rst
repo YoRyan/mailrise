@@ -2,4 +2,4 @@
 Contributors
 ============
 
-* Ryan\ <ryan@youngryan.com>
+* Ryan Young <ryan@youngryan.com>

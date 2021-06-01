@@ -2,8 +2,8 @@ import pytest
 
 from mailrise.skeleton import fib, main
 
-__author__ = "Ryan\"
-__copyright__ = "Ryan\"
+__author__ = "Ryan Young"
+__copyright__ = "Ryan Young"
 __license__ = "MIT"
 
 

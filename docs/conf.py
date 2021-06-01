@@ -94,7 +94,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "mailrise"
-copyright = "2021, Ryan\"
+copyright = "2021, Ryan Young"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -245,7 +245,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "user_guide.tex", "mailrise Documentation", "Ryan\", "manual")
+    ("index", "user_guide.tex", "mailrise Documentation", "Ryan Young", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

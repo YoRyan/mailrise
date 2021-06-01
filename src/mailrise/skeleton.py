@@ -26,8 +26,8 @@ import sys
 
 from mailrise import __version__
 
-__author__ = "Ryan\"
-__copyright__ = "Ryan\"
+__author__ = "Ryan Young"
+__copyright__ = "Ryan Young"
 __license__ = "MIT"
 
 _logger = logging.getLogger(__name__)
