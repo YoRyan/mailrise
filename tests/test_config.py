@@ -1,8 +1,12 @@
+import logging
 from io import StringIO
 
 from mailrise.config import ConfigFileError, load_config
 
 import pytest
+
+
+_logger = logging.getLogger(__name__)
 
 
 def test_errors() -> None:
@@ -12,20 +16,20 @@ def test_errors() -> None:
             24
             """
         )
-        load_config(f)
+        load_config(_logger, f)
     with pytest.raises(ConfigFileError):
         f = StringIO("""
             configs: 24
             """
         )
-        load_config(f)
+        load_config(_logger, f)
     with pytest.raises(ConfigFileError):
         f = StringIO("""
             configs:
               test: 24
             """
         )
-        load_config(f)
+        load_config(_logger, f)
 
 
 def test_load() -> None:
@@ -37,7 +41,7 @@ def test_load() -> None:
               - json://localhost
         """
     )
-    mrise = load_config(f)
+    mrise = load_config(_logger, f)
     assert len(mrise.configs) == 1
     assert 'test' in mrise.configs
 
@@ -59,7 +63,7 @@ def test_multi_load() -> None:
               - json://localhost
         """
     )
-    mrise = load_config(f)
+    mrise = load_config(_logger, f)
     assert len(mrise.configs) == 2
 
     for k in ('test1', 'test2'):
