@@ -134,25 +134,22 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     attachments = [_parseattachment(part) for part in msg.iter_attachments()
                    if isinstance(part, EmailMessage)]
     body_part = msg.get_body()
-    if body_part is None:
-        return EmailNotification(
-            title=title,
-            body='',
-            body_format=apprise.NotifyFormat.TEXT,
-            attachments=attachments
-        )
-    else:
-        assert isinstance(body_part, EmailMessage)
+    body: str
+    body_format: apprise.NotifyFormat
+    if isinstance(body_part, EmailMessage):
         body = body_part.get_content().strip()
         body_format = \
             (apprise.NotifyFormat.HTML if body_part.get_content_subtype() == 'html'
              else apprise.NotifyFormat.TEXT)
-        return EmailNotification(
-            title=title,
-            body=body,
-            body_format=body_format,
-            attachments=attachments
-        )
+    else:
+        body = ''
+        body_format = apprise.NotifyFormat.TEXT
+    return EmailNotification(
+        title=title,
+        body=body,
+        body_format=body_format,
+        attachments=attachments
+    )
 
 
 def _parseattachment(part: EmailMessage) -> Attachment:
