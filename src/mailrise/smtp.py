@@ -98,12 +98,19 @@ class AppriseHandler:
 
 
 @dataclass
+class Attachment:
+    """Represents an email attachment."""
+    data: bytes
+    suffix: str
+
+
+@dataclass
 class EmailNotification:
     """Represents the contents of an email message."""
     title: str
     body: str
     body_format: apprise.NotifyFormat
-    # TODO: Add support for attachments.
+    attachments: list[Attachment]
 
     async def submit(self, config: MailriseConfig, rcpt: Recipient) -> None:
         """Turns the email into an Apprise notification and submits it."""
@@ -124,10 +131,16 @@ class EmailNotification:
 def parsemessage(msg: EmailMessage) -> EmailNotification:
     """Parses an email message into an `EmailNotification`."""
     title = msg.get('Subject', '(no subject)')
+    attachments = [_parseattachment(part) for part in msg.iter_attachments()
+                   if isinstance(part, EmailMessage)]
     body_part = msg.get_body()
     if body_part is None:
         return EmailNotification(
-            title=title, body='', body_format=apprise.NotifyFormat.TEXT)
+            title=title,
+            body='',
+            body_format=apprise.NotifyFormat.TEXT,
+            attachments=attachments
+        )
     else:
         assert isinstance(body_part, EmailMessage)
         body = body_part.get_content().strip()
@@ -135,4 +148,15 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
             (apprise.NotifyFormat.HTML if body_part.get_content_subtype() == 'html'
              else apprise.NotifyFormat.TEXT)
         return EmailNotification(
-            title=title, body=body, body_format=body_format)
+            title=title,
+            body=body,
+            body_format=body_format,
+            attachments=attachments
+        )
+
+
+def _parseattachment(part: EmailMessage) -> Attachment:
+    filename = part.get_filename('')
+    match = re.search(r'(\..*)?$', filename)
+    assert match is not None
+    return Attachment(data=part.get_content(), suffix=match.group(1) or '')

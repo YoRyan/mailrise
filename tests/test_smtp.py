@@ -1,4 +1,5 @@
 from email.message import EmailMessage
+from pathlib import Path
 
 from mailrise.smtp import RecipientError, parsemessage, parsercpt
 
@@ -53,3 +54,51 @@ def test_parsemessage() -> None:
     assert notification.title == '(no subject)'
     assert notification.body == 'Hello, <strong>World!</strong>'
     assert notification.body_format == apprise.NotifyFormat.HTML
+
+
+def test_parseattachments() -> None:
+    """Tests for email message parsing with attachments."""
+    img_name = 'bridge.jpg'
+    with open(Path(__file__).parent/img_name, 'rb') as fp:
+        img_data = fp.read()
+
+    msg = EmailMessage()
+    msg.set_content('Hello, World!')
+    msg['Subject'] = 'Now With Images'
+    msg.add_attachment(
+        img_data,
+        maintype='image',
+        subtype='jpeg',
+        filename=img_name
+    )
+    notification = parsemessage(msg)
+    assert notification.title == 'Now With Images'
+    assert notification.body == 'Hello, World!'
+    assert notification.body_format == apprise.NotifyFormat.TEXT
+    assert len(notification.attachments) == 1
+    assert notification.attachments[0].data == img_data
+    assert notification.attachments[0].suffix == '.jpg'
+
+    msg = EmailMessage()
+    msg.set_content('Hello, World!')
+    msg['Subject'] = 'Now With Images'
+    msg.add_attachment(
+        img_data,
+        maintype='image',
+        subtype='jpeg',
+        filename=f'1_{img_name}'
+    )
+    msg.add_attachment(
+        img_data,
+        maintype='image',
+        subtype='jpeg',
+        filename=f'2_{img_name}'
+    )
+    notification = parsemessage(msg)
+    assert notification.title == 'Now With Images'
+    assert notification.body == 'Hello, World!'
+    assert notification.body_format == apprise.NotifyFormat.TEXT
+    assert len(notification.attachments) == 2
+    for attach in notification.attachments:
+        assert attach.data == img_data
+        assert attach.suffix == '.jpg'
