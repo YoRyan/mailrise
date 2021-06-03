@@ -35,6 +35,7 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
         raise ConfigFileError("'configs' node not a mapping")
     configs = {key: _load_apprise(config) for key, config in yml_configs.items()}
 
+    logger.info('Loaded configuration with %d recipient(s)', len(configs))
     return MailriseConfig(logger=logger, configs=configs)
 
 

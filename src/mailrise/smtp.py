@@ -76,6 +76,7 @@ class AppriseHandler:
             return f'550 {e.message}'
         if rcpt.config_key not in self.config.configs:
             return '551 recipient does not exist in configuration file'
+        self.config.logger.info('Accepted recipient: %s', address)
         envelope.rcpt_tos.append(address)
         return '250 OK'
 
@@ -86,6 +87,7 @@ class AppriseHandler:
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, EmailMessage)
         notification = parsemessage(message)
+        self.config.logger.info('Accepted email, subject: %s', notification.title)
 
         for rcpt in (parsercpt(addr) for addr in envelope.rcpt_tos):
             try:
