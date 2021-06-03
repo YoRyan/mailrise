@@ -43,12 +43,9 @@ def parsercpt(addr: str) -> Recipient:
     match = re.search(rx, email, re.IGNORECASE)
     if match is None:
         raise RecipientError(f"'{email}' is not a valid mailrise recipient")
-    if match.group(1) is None:
-        key = match.group(3)
-        ntypes = match.group(4).lower()
-    else:
-        key = match.group(1)
-        ntypes = match.group(2).lower()
+    quoted = match.group(1) is not None
+    key = match.group(1) if quoted else match.group(3)
+    ntypes = (match.group(2) if quoted else match.group(4)).lower()
 
     ntype = apprise.NotifyType.INFO
     if ntypes == '.info':
