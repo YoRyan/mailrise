@@ -23,8 +23,13 @@ References:
 import argparse
 import logging
 import sys
+from asyncio import get_event_loop
 
 from mailrise import __version__
+from mailrise.config import ConfigFileError, load_config
+from mailrise.smtp import AppriseHandler
+
+from aiosmtpd.controller import Controller
 
 __author__ = "Ryan Young"
 __copyright__ = "Ryan Young"
@@ -111,6 +116,34 @@ def main(args: list[str]) -> None:
     """
     pargs = parse_args(args)
     setup_logging(pargs.loglevel)
+
+    try:
+        config = load_config(_logger, pargs.config)
+    except ConfigFileError as e:
+        _logger.critical('Error loading configuration file: %s', e.message)
+        return
+    if len(config.configs) < 1:
+        _logger.critical('Error loading configuration file: '
+                         'there are no Apprise configs')
+        return
+
+    # TODO: Use UnthreadedController (with `loop`) when that becomes available
+    # in stable aiosmtpd.
+
+    controller = Controller(AppriseHandler(config=config))
+    try:
+        controller.start()
+    except Exception as e:
+        _logger.critical('Failed to start aiosmtpd controller: %s', e)
+        controller.stop()
+        return
+
+    eloop = get_event_loop()
+    try:
+        eloop.run_forever()
+    finally:
+        eloop.close()
+        controller.stop()
 
 
 def run() -> None:

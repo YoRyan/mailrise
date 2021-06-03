@@ -2,17 +2,30 @@
 This is the SMTP server functionality for Mailrise.
 """
 
+import email.policy
+import functools
 import re
+from asyncio import get_running_loop
 from dataclasses import dataclass
+from email.message import EmailMessage
+from email.parser import BytesParser
 from email.utils import parseaddr
 
+from mailrise.config import MailriseConfig
+
 import apprise # type: ignore
+from aiosmtpd.smtp import Envelope, Session, SMTP
 
 
 class RecipientError(Exception):
     """Exception raised for invalid recipient email addresses."""
     def __init__(self, message: str) -> None:
         self.message = message
+
+
+class AppriseNotifyFailure(Exception):
+    """Exception raised when Apprise fails to deliver a notification."""
+    pass
 
 
 @dataclass
@@ -23,6 +36,7 @@ class Recipient:
 
 
 def parsercpt(addr: str) -> Recipient:
+    """Parses an email address into a `Recipient`."""
     _, email = parseaddr(addr)
     rx_types = r'((?:\.(?:info|success|warning|failure))?)'
     rx = f'(?:"([^"@\\.]*){rx_types}"|([^@\\.]*){rx_types})@mailrise\\.xyz$'
@@ -47,3 +61,76 @@ def parsercpt(addr: str) -> Recipient:
         ntype = apprise.NotifyType.FAILURE
 
     return Recipient(config_key=key, notify_type=ntype)
+
+
+@dataclass
+class AppriseHandler:
+    """The aiosmtpd handler for Mailrise. Dispatches Apprise notifications."""
+    config: MailriseConfig
+
+    async def handle_RCPT(self, server: SMTP, session: Session, envelope: Envelope,
+                          address: str, rcpt_options: list[str]) -> str:
+        try:
+            rcpt = parsercpt(address)
+        except RecipientError as e:
+            return f'550 {e.message}'
+        if rcpt.config_key not in self.config.configs:
+            return '551 recipient does not exist in configuration file'
+        envelope.rcpt_tos.append(address)
+        return '250 OK'
+
+    async def handle_DATA(self, server: SMTP, session: Session, envelope: Envelope) \
+            -> str:
+        assert isinstance(envelope.content, bytes)
+        parser = BytesParser(policy=email.policy.default)
+        message = parser.parsebytes(envelope.content)
+        assert isinstance(message, EmailMessage)
+        notification = parsemessage(message)
+
+        for rcpt in (parsercpt(addr) for addr in envelope.rcpt_tos):
+            try:
+                await notification.submit(self.config, rcpt)
+            except AppriseNotifyFailure:
+                return '450 failed to send notification'
+        return '250 OK'
+
+
+@dataclass
+class EmailNotification:
+    """Represents the contents of an email message."""
+    title: str
+    body: str
+    body_format: apprise.NotifyFormat
+    # TODO: Add support for attachments.
+
+    async def submit(self, config: MailriseConfig, rcpt: Recipient) -> None:
+        """Turns the email into an Apprise notification and submits it."""
+        apobj = apprise.Apprise()
+        apobj.add(config.configs[rcpt.config_key])
+        notify = functools.partial(
+            apobj.notify,
+            title=self.title,
+            body=self.body,
+            body_format=self.body_format,
+            notify_type=rcpt.notify_type
+        )
+        res = await get_running_loop().run_in_executor(None, notify)
+        if not res:
+            raise AppriseNotifyFailure()
+
+
+def parsemessage(msg: EmailMessage) -> EmailNotification:
+    """Parses an email message into an `EmailNotification`."""
+    title = msg.get('Subject', '(no subject)')
+    body_part = msg.get_body()
+    if body_part is None:
+        return EmailNotification(
+            title=title, body='', body_format=apprise.NotifyFormat.TEXT)
+    else:
+        assert isinstance(body_part, EmailMessage)
+        body = body_part.get_content().strip()
+        body_format = \
+            (apprise.NotifyFormat.HTML if body_part.get_content_subtype() == 'html'
+             else apprise.NotifyFormat.TEXT)
+        return EmailNotification(
+            title=title, body=body, body_format=body_format)
