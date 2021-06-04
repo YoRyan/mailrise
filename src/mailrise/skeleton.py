@@ -130,7 +130,14 @@ def main(args: list[str]) -> None:
     # TODO: Use UnthreadedController (with `loop`) when that becomes available
     # in stable aiosmtpd.
 
-    controller = Controller(AppriseHandler(config=config))
+    controller = Controller(
+        AppriseHandler(config=config),
+        hostname=config.listen_host,
+        port=config.listen_port,
+        server_hostname=config.smtp_hostname,
+        decode_data=False,
+        ident=f'Mailrise {__version__}'
+    )
     try:
         controller.start()
     except Exception as e:

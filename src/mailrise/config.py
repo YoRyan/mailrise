@@ -21,6 +21,9 @@ class ConfigFileError(Exception):
 class MailriseConfig:
     """Configuration data for a Mailrise instance."""
     logger: Logger
+    listen_host: str
+    listen_port: int
+    smtp_hostname: typ.Optional[str]
     configs: dict[str, apprise.AppriseConfig]
 
 
@@ -30,13 +33,23 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     if not isinstance(yml, dict):
         raise ConfigFileError("root node not a mapping")
 
+    yml_listen = yml.get('listen', {})
+
+    yml_smtp = yml.get('smtp', {})
+
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
     configs = {key: _load_apprise(config) for key, config in yml_configs.items()}
 
     logger.info('Loaded configuration with %d recipient(s)', len(configs))
-    return MailriseConfig(logger=logger, configs=configs)
+    return MailriseConfig(
+        logger=logger,
+        listen_host=yml_listen.get('host', ''),
+        listen_port=yml_listen.get('port', 8025),
+        smtp_hostname=yml_smtp.get('hostname', None),
+        configs=configs
+    )
 
 
 def _load_apprise(config: dict[str, typ.Any]) -> apprise.AppriseConfig:
