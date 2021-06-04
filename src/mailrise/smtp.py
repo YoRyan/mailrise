@@ -4,16 +4,21 @@ This is the SMTP server functionality for Mailrise.
 
 import email.policy
 import functools
+import os
 import re
+import typing as typ
 from asyncio import get_running_loop
 from dataclasses import dataclass
 from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import parseaddr
+from tempfile import NamedTemporaryFile
 
 from mailrise.config import MailriseConfig
 
 import apprise # type: ignore
+from apprise.attachment import AttachBase # type: ignore
+from apprise.common import ContentLocation # type: ignore
 from aiosmtpd.smtp import Envelope, Session, SMTP
 
 
@@ -98,7 +103,7 @@ class AppriseHandler:
 class Attachment:
     """Represents an email attachment."""
     data: bytes
-    suffix: str
+    filename: str
 
 
 @dataclass
@@ -113,14 +118,19 @@ class EmailNotification:
         """Turns the email into an Apprise notification and submits it."""
         apobj = apprise.Apprise()
         apobj.add(config.configs[rcpt.config_key])
+        attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
         notify = functools.partial(
             apobj.notify,
             title=self.title,
             body=self.body,
             body_format=self.body_format,
-            notify_type=rcpt.notify_type
+            notify_type=rcpt.notify_type,
+            attach=apprise.AppriseAttachment(attachbase)
         )
         res = await get_running_loop().run_in_executor(None, notify)
+        # NOTE: This should probably be called by Apprise itself, but it isn't?
+        for ab in attachbase:
+            ab.invalidate()
         if not res:
             raise AppriseNotifyFailure()
 
@@ -150,7 +160,52 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
 
 
 def _parseattachment(part: EmailMessage) -> Attachment:
-    filename = part.get_filename('')
-    match = re.search(r'(\..*)?$', filename)
-    assert match is not None
-    return Attachment(data=part.get_content(), suffix=match.group(1) or '')
+    return Attachment(data=part.get_content(), filename=part.get_filename(''))
+
+
+class AttachMailrise(AttachBase):
+    """An Apprise attachment type that wraps `Attachment`.
+
+    Data is stored in temporary files for upload.
+    """
+    detected_name: typ.Optional[str]
+    download_path: typ.Optional[str]
+
+    location = ContentLocation.LOCAL
+
+    _mrfile = None # Satisfy mypy by initializing as an Optional.
+
+    def __init__(self, config: MailriseConfig, attach: Attachment, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._mrconfig = config
+        self._mrattach = attach
+
+    def download(self) -> bool:
+        self.invalidate()
+
+        tfile = NamedTemporaryFile(delete=False)
+        tfile.write(self._mrattach.data)
+        tfile.close()
+        self._mrfile = tfile
+        self.download_path = tfile.name
+        self.detected_name = self._mrattach.filename
+
+        return True # Indicates the "download" was successful.
+
+    def invalidate(self) -> None:
+        tfile = self._mrfile
+        if tfile:
+            try:
+                os.remove(tfile.name)
+            except (FileNotFoundError, OSError):
+                self._mrconfig.logger.info(
+                    'Failed to delete attachment file: %s', tfile.name)
+            self._mrfile = None
+        super().invalidate()
+
+    def url(self, **kwargs) -> str:
+        return f'mailrise://{hex(id(self))}'
+
+    @staticmethod
+    def parse_url(url: str, **kwargs):
+        return None

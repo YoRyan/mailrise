@@ -77,7 +77,7 @@ def test_parseattachments() -> None:
     assert notification.body_format == apprise.NotifyFormat.TEXT
     assert len(notification.attachments) == 1
     assert notification.attachments[0].data == img_data
-    assert notification.attachments[0].suffix == '.jpg'
+    assert notification.attachments[0].filename == img_name
 
     msg = EmailMessage()
     msg.set_content('Hello, World!')
@@ -101,4 +101,5 @@ def test_parseattachments() -> None:
     assert len(notification.attachments) == 2
     for attach in notification.attachments:
         assert attach.data == img_data
-        assert attach.suffix == '.jpg'
+    assert notification.attachments[0].filename == f'1_{img_name}'
+    assert notification.attachments[1].filename == f'2_{img_name}'
