@@ -2,6 +2,7 @@
 This is the SMTP server functionality for Mailrise.
 """
 
+import asyncio
 import email.policy
 import functools
 import os
@@ -116,11 +117,12 @@ class AppriseHandler:
         notification = parsemessage(message)
         self.config.logger.info('Accepted email, subject: %s', notification.title)
 
-        for rcpt in (parsercpt(addr) for addr in envelope.rcpt_tos):
-            try:
-                await notification.submit(self.config, rcpt)
-            except AppriseNotifyFailure:
-                return '450 failed to send notification'
+        rcpts = (parsercpt(addr) for addr in envelope.rcpt_tos)
+        aws = (notification.submit(self.config, rcpt) for rcpt in rcpts)
+        try:
+            await asyncio.gather(*aws)
+        except AppriseNotifyFailure:
+            return '450 failed to send notification'
         return '250 OK'
 
 
