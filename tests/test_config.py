@@ -14,21 +14,18 @@ def test_errors() -> None:
     with pytest.raises(ConfigFileError):
         f = StringIO("""
             24
-            """
-        )
+        """)
         load_config(_logger, f)
     with pytest.raises(ConfigFileError):
         f = StringIO("""
             configs: 24
-            """
-        )
+        """)
         load_config(_logger, f)
     with pytest.raises(ConfigFileError):
         f = StringIO("""
             configs:
               test: 24
-            """
-        )
+        """)
         load_config(_logger, f)
 
 
@@ -39,8 +36,7 @@ def test_load() -> None:
           test:
             urls:
               - json://localhost
-        """
-    )
+    """)
     mrise = load_config(_logger, f)
     assert len(mrise.configs) == 1
     assert 'test' in mrise.configs
@@ -61,8 +57,7 @@ def test_multi_load() -> None:
           test2:
             urls:
               - json://localhost
-        """
-    )
+    """)
     mrise = load_config(_logger, f)
     assert len(mrise.configs) == 2
 

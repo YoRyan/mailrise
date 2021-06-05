@@ -3,7 +3,7 @@ from pathlib import Path
 
 from mailrise.smtp import RecipientError, parsemessage, parsercpt
 
-import apprise # type: ignore
+import apprise  # type: ignore
 import pytest
 
 
