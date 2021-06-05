@@ -23,25 +23,46 @@ from aiosmtpd.smtp import Envelope, Session, SMTP
 
 
 class RecipientError(Exception):
-    """Exception raised for invalid recipient email addresses."""
+    """Exception raised for invalid recipient email addresses.
+
+    Attributes:
+        message: The reason the recipient is invalid.
+    """
+    message: str
+
     def __init__(self, message: str) -> None:
         self.message = message
 
 
 class AppriseNotifyFailure(Exception):
-    """Exception raised when Apprise fails to deliver a notification."""
+    """Exception raised when Apprise fails to deliver a notification.
+
+    Note: Apprise does not provide any information about the reason for the
+    failure."""
     pass
 
 
 @dataclass
 class Recipient:
-    """The routing information encoded into a recipient address."""
+    """The routing information encoded into a recipient address.
+
+    Attributes:
+        config_key: An index into the `configs` dictionary.
+        notify_type: The type of notification to send.
+    """
     config_key: str
     notify_type: apprise.NotifyType
 
 
 def parsercpt(addr: str) -> Recipient:
-    """Parses an email address into a `Recipient`."""
+    """Parses an email address into a `Recipient`.
+
+    Args:
+        addr: The email address to parse.
+
+    Returns:
+        The `Recipient` instance.
+    """
     _, email = parseaddr(addr)
     rx_types = r'((?:\.(?:info|success|warning|failure))?)'
     rx = f'(?:"([^"@\\.]*){rx_types}"|([^@\\.]*){rx_types})@mailrise\\.xyz$'
@@ -67,7 +88,11 @@ def parsercpt(addr: str) -> Recipient:
 
 @dataclass
 class AppriseHandler:
-    """The aiosmtpd handler for Mailrise. Dispatches Apprise notifications."""
+    """The aiosmtpd handler for Mailrise. Dispatches Apprise notifications.
+
+    Attributes:
+        config: This server's Mailrise configuration.
+    """
     config: MailriseConfig
 
     async def handle_RCPT(self, server: SMTP, session: Session, envelope: Envelope,
@@ -101,21 +126,41 @@ class AppriseHandler:
 
 @dataclass
 class Attachment:
-    """Represents an email attachment."""
+    """Represents an email attachment.
+
+    Attributes:
+        data: The contents of the attachment.
+        filename: The filename of the attachment as it was set by the sender.
+    """
     data: bytes
     filename: str
 
 
 @dataclass
 class EmailNotification:
-    """Represents the contents of an email message."""
+    """A notification template that has been constructed from an email message.
+
+    Attributes:
+        title: The title of the notification.
+        body: The contents of the notification.
+        body_format: The type of the contents of the notification.
+        attachments: The attachments attached to the notification.
+    """
     title: str
     body: str
     body_format: apprise.NotifyFormat
     attachments: list[Attachment]
 
     async def submit(self, config: MailriseConfig, rcpt: Recipient) -> None:
-        """Turns the email into an Apprise notification and submits it."""
+        """Turns the email into an Apprise notification and submits it.
+
+        Args:
+            config: The Mailrise configuration to use.
+            rcpt: The recipient data to use.
+
+        Raises:
+            AppriseNotifyFailure: Apprise failed to submit the notification.
+        """
         apobj = apprise.Apprise()
         apobj.add(config.configs[rcpt.config_key])
         attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
@@ -136,7 +181,14 @@ class EmailNotification:
 
 
 def parsemessage(msg: EmailMessage) -> EmailNotification:
-    """Parses an email message into an `EmailNotification`."""
+    """Parses an email message into an `EmailNotification`.
+
+    Args:
+        msg: The email message.
+
+    Returns:
+        The `EmailNotification` instance.
+    """
     title = msg.get('Subject', '(no subject)')
     attachments = [_parseattachment(part) for part in msg.iter_attachments()
                    if isinstance(part, EmailMessage)]
@@ -167,6 +219,10 @@ class AttachMailrise(AttachBase):
     """An Apprise attachment type that wraps `Attachment`.
 
     Data is stored in temporary files for upload.
+
+    Args:
+        config: The Mailrise configuration to use.
+        attach: The `Attachment` instance.
     """
     detected_name: typ.Optional[str]
     download_path: typ.Optional[str]

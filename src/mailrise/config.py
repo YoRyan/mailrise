@@ -13,22 +13,41 @@ import yaml
 
 
 class ConfigFileError(Exception):
-    """Exception raised for invalid configuration files."""
+    """Exception raised for invalid configuration files.
+
+    Attributes:
+        message: The reason the configuration file is invalid.
+    """
+    message: str
+
     def __init__(self, message: str) -> None:
         self.message = message
 
 
 class TLSMode(Enum):
     """Specifies a TLS encryption operating mode."""
-    OFF = 1
-    ONCONNECT = 2
-    STARTTLS = 3
-    STARTTLSREQUIRE = 4
+    OFF = 'no TLS'
+    ONCONNECT = 'TLS on connect'
+    STARTTLS = 'STARTTLS, optional'
+    STARTTLSREQUIRE = 'STARTTLS, required'
 
 
 @dataclass
 class MailriseConfig:
-    """Configuration data for a Mailrise instance."""
+    """Configuration data for a Mailrise instance.
+
+    Attributes:
+        logger: The logger, which is used to record interesting events.
+        listen_host: The network address to listen on.
+        listen_port: The network port to listen on.
+        tls_mode: The TLS encryption mode.
+        tls_certfile: The path to the TLS certificate chain file.
+        tls_keyfile: The path to the TLS key file.
+        smtp_hostname: The advertised SMTP server hostname.
+        configs: A dictionary of Apprise YAML configurations. The key is the
+            name of the configuration, and the value is the configuration
+            itself.
+    """
     logger: Logger
     listen_host: str
     listen_port: int
@@ -40,7 +59,18 @@ class MailriseConfig:
 
 
 def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
-    """Loads configuration data from a YAML file."""
+    """Loads configuration data from a YAML file.
+
+    Args:
+        logger: The logger, which will be passed to the `MailriseConfig` instance.
+        f: The file handle to load YAML from.
+
+    Returns:
+        The `MailriseConfig` instance.
+
+    Raises:
+        ConfigFileError: The configuration file is invalid.
+    """
     yml = yaml.safe_load(f)
     if not isinstance(yml, dict):
         raise ConfigFileError("root node not a mapping")

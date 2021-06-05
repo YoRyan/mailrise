@@ -1,23 +1,5 @@
 """
-This is a skeleton file that can serve as a starting point for a Python
-console script. To run this script uncomment the following lines in the
-``[options.entry_points]`` section in ``setup.cfg``::
-
-    console_scripts =
-         fibonacci = mailrise.skeleton:run
-
-Then run ``pip install .`` (or ``pip install -e .`` for editable mode)
-which will install the command ``fibonacci`` inside your current environment.
-
-Besides console scripts, the header (i.e. until ``_logger``...) of this file can
-also be used as template for Python modules.
-
-Note:
-    This skeleton file can be safely removed if not needed!
-
-References:
-    - https://setuptools.readthedocs.io/en/latest/userguide/entry_point.html
-    - https://pip.pypa.io/en/stable/reference/pip_install
+This is the entry point for the `mailrise` command-line program.
 """
 
 import argparse
@@ -54,14 +36,14 @@ _logger = logging.getLogger(__name__)
 
 
 def parse_args(args: list[str]) -> argparse.Namespace:
-    """Parse command line parameters
+    """Parse command line parameters.
 
     Args:
       args (List[str]): command line parameters as list of strings
           (for example  ``["--help"]``).
 
     Returns:
-      :obj:`argparse.Namespace`: command line parameters namespace
+      :obj:`argparse.Namespace`: command line parameters namespace.
     """
     parser = argparse.ArgumentParser(
         description="An SMTP gateway for Apprise notifications")
@@ -96,10 +78,10 @@ def parse_args(args: list[str]) -> argparse.Namespace:
 
 
 def setup_logging(loglevel: int) -> None:
-    """Setup basic logging
+    """Setup basic logging.
 
     Args:
-      loglevel (int): minimum loglevel for emitting messages
+      loglevel (int): Minimum loglevel for emitting messages.
     """
     logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
     logging.basicConfig(
@@ -108,10 +90,8 @@ def setup_logging(loglevel: int) -> None:
 
 
 def main(args: list[str]) -> None:
-    """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
-
-    Instead of returning the value from :func:`fib`, it prints the result to the
-    ``stdout`` in a nicely formatted message.
+    """Loads the configuration specified on the command-line and starts an SMTP
+    server.
 
     Args:
       args (List[str]): command line parameters as list of strings
@@ -173,7 +153,7 @@ def main(args: list[str]) -> None:
 
 
 def run() -> None:
-    """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`
+    """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`.
 
     This function can be used as entry point to create console scripts with setuptools.
     """
