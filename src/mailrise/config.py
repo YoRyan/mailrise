@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from logging import Logger
 
-import apprise # type: ignore
+import apprise  # type: ignore
 import yaml
 
 

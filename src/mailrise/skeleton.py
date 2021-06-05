@@ -63,7 +63,8 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     Returns:
       :obj:`argparse.Namespace`: command line parameters namespace
     """
-    parser = argparse.ArgumentParser(description="An SMTP gateway for Apprise notifications")
+    parser = argparse.ArgumentParser(
+        description="An SMTP gateway for Apprise notifications")
     parser.add_argument(
         "--version",
         action="version",

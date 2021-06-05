@@ -16,9 +16,9 @@ from tempfile import NamedTemporaryFile
 
 from mailrise.config import MailriseConfig
 
-import apprise # type: ignore
-from apprise.attachment import AttachBase # type: ignore
-from apprise.common import ContentLocation # type: ignore
+import apprise  # type: ignore
+from apprise.attachment import AttachBase  # type: ignore
+from apprise.common import ContentLocation  # type: ignore
 from aiosmtpd.smtp import Envelope, Session, SMTP
 
 
@@ -173,7 +173,7 @@ class AttachMailrise(AttachBase):
 
     location = ContentLocation.LOCAL
 
-    _mrfile = None # Satisfy mypy by initializing as an Optional.
+    _mrfile = None  # Satisfy mypy by initializing as an Optional.
 
     def __init__(self, config: MailriseConfig, attach: Attachment, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -190,7 +190,7 @@ class AttachMailrise(AttachBase):
         self.download_path = tfile.name
         self.detected_name = self._mrattach.filename
 
-        return True # Indicates the "download" was successful.
+        return True  # Indicates the "download" was successful.
 
     def invalidate(self) -> None:
         tfile = self._mrfile
