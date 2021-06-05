@@ -22,11 +22,13 @@ References:
 
 import argparse
 import logging
+import ssl
 import sys
+import typing as typ
 from asyncio import get_event_loop
 
 from mailrise import __version__
-from mailrise.config import ConfigFileError, load_config
+from mailrise.config import ConfigFileError, TLSMode, load_config
 from mailrise.smtp import AppriseHandler
 
 from aiosmtpd.controller import Controller
@@ -127,6 +129,19 @@ def main(args: list[str]) -> None:
                          'there are no Apprise configs')
         return
 
+    tls: typ.Optional[ssl.SSLContext]
+    tls_mode = config.tls_mode
+    if tls_mode != TLSMode.OFF:
+        assert isinstance(config.tls_certfile, str)
+        assert isinstance(config.tls_keyfile, str)
+        tls = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        tls.load_cert_chain(config.tls_certfile, keyfile=config.tls_keyfile)
+    tls_onconnect = \
+        (tls if tls_mode == TLSMode.ONCONNECT else None)
+    tls_starttls = \
+        (tls if tls_mode == TLSMode.STARTTLS or tls_mode == TLSMode.STARTTLSREQUIRE
+         else None)
+
     # TODO: Use UnthreadedController (with `loop`) when that becomes available
     # in stable aiosmtpd.
 
@@ -134,9 +149,12 @@ def main(args: list[str]) -> None:
         AppriseHandler(config=config),
         hostname=config.listen_host,
         port=config.listen_port,
+        ssl_context=tls_onconnect,
         server_hostname=config.smtp_hostname,
         decode_data=False,
-        ident=f'Mailrise {__version__}'
+        ident=f'Mailrise {__version__}',
+        tls_context=tls_starttls,
+        require_starttls=tls_mode == TLSMode.STARTTLSREQUIRE
     )
     try:
         controller.start()

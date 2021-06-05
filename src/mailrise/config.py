@@ -5,6 +5,7 @@ This is the YAML configuration parser for Mailrise.
 import io
 import typing as typ
 from dataclasses import dataclass
+from enum import Enum
 from logging import Logger
 
 import apprise # type: ignore
@@ -17,12 +18,23 @@ class ConfigFileError(Exception):
         self.message = message
 
 
+class TLSMode(Enum):
+    """Specifies a TLS encryption operating mode."""
+    OFF = 1
+    ONCONNECT = 2
+    STARTTLS = 3
+    STARTTLSREQUIRE = 4
+
+
 @dataclass
 class MailriseConfig:
     """Configuration data for a Mailrise instance."""
     logger: Logger
     listen_host: str
     listen_port: int
+    tls_mode: TLSMode
+    tls_certfile: typ.Optional[str]
+    tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
     configs: dict[str, apprise.AppriseConfig]
 
@@ -34,6 +46,17 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
         raise ConfigFileError("root node not a mapping")
 
     yml_listen = yml.get('listen', {})
+
+    yml_tls = yml.get('tls', {})
+    try:
+        tls_mode = TLSMode[yml_tls.get('mode', 'off').upper()]
+    except KeyError:
+        raise ConfigFileError('invalid TLS operating mode')
+    tls_certfile = yml_tls.get('certfile', None)
+    tls_keyfile = yml_tls.get('keyfile', None)
+    if tls_mode != TLSMode.OFF and not (tls_certfile and tls_keyfile):
+        raise ConfigFileError(
+            'TLS enabled, but certificate and key files not specified')
 
     yml_smtp = yml.get('smtp', {})
 
@@ -47,6 +70,9 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
         logger=logger,
         listen_host=yml_listen.get('host', ''),
         listen_port=yml_listen.get('port', 8025),
+        tls_mode=tls_mode,
+        tls_certfile=tls_certfile,
+        tls_keyfile=tls_keyfile,
         smtp_hostname=yml_smtp.get('hostname', None),
         configs=configs
     )
