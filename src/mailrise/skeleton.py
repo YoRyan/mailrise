@@ -2,6 +2,8 @@
 This is the entry point for the `mailrise` command-line program.
 """
 
+from __future__ import annotations
+
 import argparse
 import logging
 import ssl

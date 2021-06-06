@@ -2,6 +2,8 @@
 This is the YAML configuration parser for Mailrise.
 """
 
+from __future__ import annotations
+
 import io
 import typing as typ
 from dataclasses import dataclass

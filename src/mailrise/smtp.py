@@ -2,6 +2,8 @@
 This is the SMTP server functionality for Mailrise.
 """
 
+from __future__ import annotations
+
 import asyncio
 import email.policy
 import functools
