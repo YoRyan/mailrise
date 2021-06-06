@@ -119,6 +119,7 @@ def main(args: list[str]) -> None:
         assert isinstance(config.tls_keyfile, str)
         tls = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         tls.load_cert_chain(config.tls_certfile, keyfile=config.tls_keyfile)
+        _logger.info('TLS enabled and successfully initialized')
     tls_onconnect = \
         (tls if tls_mode == TLSMode.ONCONNECT else None)
     tls_starttls = \
