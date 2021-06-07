@@ -193,9 +193,9 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     Returns:
         The `EmailNotification` instance.
     """
-    title = msg.get('Subject', '(no subject)')
-    attachments = [_parseattachment(part) for part in msg.iter_attachments()
-                   if isinstance(part, EmailMessage)]
+    subject = msg.get('Subject', '(no subject)')
+    sender = msg.get('From', None)
+    title = f'{subject} ({sender})' if sender else f'{subject} (no sender)'
     body_part = msg.get_body()
     body: str
     body_format: apprise.NotifyFormat
@@ -207,6 +207,8 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     else:
         body = ''
         body_format = apprise.NotifyFormat.TEXT
+    attachments = [_parseattachment(part) for part in msg.iter_attachments()
+                   if isinstance(part, EmailMessage)]
     return EmailNotification(
         title=title,
         body=body,

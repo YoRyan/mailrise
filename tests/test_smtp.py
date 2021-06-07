@@ -41,9 +41,10 @@ def test_parsemessage() -> None:
     """Tests for email message parsing."""
     msg = EmailMessage()
     msg.set_content('Hello, World!')
+    msg['From'] = ''
     msg['Subject'] = 'Test Message'
     notification = parsemessage(msg)
-    assert notification.title == 'Test Message'
+    assert notification.title == 'Test Message (no sender)'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
 
@@ -51,7 +52,7 @@ def test_parsemessage() -> None:
     msg.set_content('Hello, World!')
     msg.add_alternative('Hello, <strong>World!</strong>', subtype='html')
     notification = parsemessage(msg)
-    assert notification.title == '(no subject)'
+    assert notification.title == '(no subject) (no sender)'
     assert notification.body == 'Hello, <strong>World!</strong>'
     assert notification.body_format == apprise.NotifyFormat.HTML
 
@@ -64,6 +65,7 @@ def test_parseattachments() -> None:
 
     msg = EmailMessage()
     msg.set_content('Hello, World!')
+    msg['From'] = 'sender@example.com'
     msg['Subject'] = 'Now With Images'
     msg.add_attachment(
         img_data,
@@ -72,7 +74,7 @@ def test_parseattachments() -> None:
         filename=img_name
     )
     notification = parsemessage(msg)
-    assert notification.title == 'Now With Images'
+    assert notification.title == 'Now With Images (sender@example.com)'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
     assert len(notification.attachments) == 1
@@ -81,6 +83,7 @@ def test_parseattachments() -> None:
 
     msg = EmailMessage()
     msg.set_content('Hello, World!')
+    msg['From'] = 'sender@example.com'
     msg['Subject'] = 'Now With Images'
     msg.add_attachment(
         img_data,
@@ -95,7 +98,7 @@ def test_parseattachments() -> None:
         filename=f'2_{img_name}'
     )
     notification = parsemessage(msg)
-    assert notification.title == 'Now With Images'
+    assert notification.title == 'Now With Images (sender@example.com)'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
     assert len(notification.attachments) == 2
