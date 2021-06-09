@@ -49,6 +49,24 @@ project of mine that articulated a similar concept but was designed solely for
 Pushover.
 
 
+Installation
+============
+
+As a systemd service
+--------------------
+
+Here is the suggested systemd unit file::
+
+    [Unit]
+    Description=Mailrise SMTP notification relay
+    
+    [Service]
+    ExecStart=/usr/local/bin/mailrise /etc/mailrise.conf
+    
+    [Install]
+    WantedBy=multi-user.target
+
+
 Configuration
 =============
 
