@@ -38,13 +38,12 @@ def test_load() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, f)
-    assert len(mrise.configs) == 1
-    assert 'test' in mrise.configs
+    assert len(mrise.senders) == 1
+    assert 'test' in mrise.senders
 
-    arise = mrise.configs['test']
-    servers = arise.servers()
-    assert len(servers) == 1
-    assert servers[0].url().startswith('json://localhost/')
+    arise = mrise.senders['test']
+    assert len(arise) == 1
+    assert arise[0].url().startswith('json://localhost/')
 
 
 def test_multi_load() -> None:
@@ -59,12 +58,11 @@ def test_multi_load() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, f)
-    assert len(mrise.configs) == 2
+    assert len(mrise.senders) == 2
 
     for k in ('test1', 'test2'):
-        assert k in mrise.configs
+        assert k in mrise.senders
 
-        arise = mrise.configs[k]
-        servers = arise.servers()
-        assert len(servers) == 1
-        assert servers[0].url().startswith('json://localhost/')
+        arise = mrise.senders[k]
+        assert len(arise) == 1
+        assert arise[0].url().startswith('json://localhost/')

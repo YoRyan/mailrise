@@ -107,7 +107,7 @@ def main(args: list[str]) -> None:
     except ConfigFileError as e:
         _logger.critical('Error loading configuration file: %s', e.message)
         return
-    if len(config.configs) < 1:
+    if len(config.senders) < 1:
         _logger.critical('Error loading configuration file: '
                          'there are no Apprise configs')
         return

@@ -104,7 +104,7 @@ class AppriseHandler:
             rcpt = parsercpt(address)
         except RecipientError as e:
             return f'550 {e.message}'
-        if rcpt.config_key not in self.config.configs:
+        if rcpt.config_key not in self.config.senders:
             return '551 recipient does not exist in configuration file'
         self.config.logger.info('Accepted recipient: %s', address)
         envelope.rcpt_tos.append(address)
@@ -165,8 +165,7 @@ class EmailNotification:
         Raises:
             AppriseNotifyFailure: Apprise failed to submit the notification.
         """
-        apobj = apprise.Apprise()
-        apobj.add(config.configs[rcpt.config_key])
+        apobj = config.senders[rcpt.config_key]
         attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
         notify = functools.partial(
             apobj.notify,

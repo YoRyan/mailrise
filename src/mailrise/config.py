@@ -46,9 +46,8 @@ class MailriseConfig:
         tls_certfile: The path to the TLS certificate chain file.
         tls_keyfile: The path to the TLS key file.
         smtp_hostname: The advertised SMTP server hostname.
-        configs: A dictionary of Apprise YAML configurations. The key is the
-            name of the configuration, and the value is the configuration
-            itself.
+        senders: A dictionary of Apprise senders. The key is the name of the
+            configuration, and the value is the Apprise instance itself.
     """
     logger: Logger
     listen_host: str
@@ -57,7 +56,7 @@ class MailriseConfig:
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
-    configs: dict[str, apprise.AppriseConfig]
+    senders: dict[str, apprise.Apprise]
 
 
 def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
@@ -95,9 +94,9 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
-    configs = {key: _load_apprise(config) for key, config in yml_configs.items()}
+    senders = {key: _load_apprise(config) for key, config in yml_configs.items()}
 
-    logger.info('Loaded configuration with %d recipient(s)', len(configs))
+    logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
         logger=logger,
         listen_host=yml_listen.get('host', ''),
@@ -106,13 +105,15 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
         tls_certfile=tls_certfile,
         tls_keyfile=tls_keyfile,
         smtp_hostname=yml_smtp.get('hostname', None),
-        configs=configs
+        senders=senders
     )
 
 
-def _load_apprise(config: dict[str, typ.Any]) -> apprise.AppriseConfig:
+def _load_apprise(config: dict[str, typ.Any]) -> apprise.Apprise:
     if not isinstance(config, dict):
         raise ConfigFileError("apprise node not a mapping")
     aconfig = apprise.AppriseConfig()
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
-    return aconfig
+    apobj = apprise.Apprise()
+    apobj.add(aconfig)
+    return apobj
