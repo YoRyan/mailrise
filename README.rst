@@ -87,6 +87,8 @@ configs       dictionary Contains the Apprise configurations. The key is the
                          `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
                          itself, exactly as it would be specified in a standalone
                          file for Apprise.
+
+                         The configuration name must *not* contain a period.
 listen.host   string     Specifies the network address to listen on.
 
                          Defaults to all interfaces.
