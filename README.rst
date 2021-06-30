@@ -69,10 +69,13 @@ An official Docker image is available
 `from Docker Hub <https://hub.docker.com/r/yoryan/mailrise>`_. To use it, you
 must bind mount a configuration file to ``/etc/mailrise.conf``.
 
-As a systemd service
---------------------
+From PyPI
+---------
 
-Here is the suggested systemd unit file::
+You can find Mailrise `on PyPI <https://pypi.org/project/mailrise/>`_.
+
+Once installed, you should write a configuration file and then configure Mailrise
+to run as a service. Here is the suggested systemd unit file::
 
     [Unit]
     Description=Mailrise SMTP notification relay
@@ -83,6 +86,17 @@ Here is the suggested systemd unit file::
     [Install]
     WantedBy=multi-user.target
 
+From source
+-----------
+
+This repository is structured like any other Python package. To install it in
+editable mode for development or debugging purposes, use::
+
+    pip install -e .
+
+To build a wheel, use::
+
+    tox -e build
 
 Configuration
 =============
