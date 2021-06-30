@@ -21,6 +21,9 @@ systems, and outdated software to gain access to the full suite of 60+
 notification services supported by Apprise, from Matrix to Nextcloud to your
 desktop.
 
+Just as email brought written messages into the 21st century, Mailrise
+brings email notifications into the year 2021 and beyond.
+
 A Mailrise daemon is configured with a list of Apprise
 `configuration files <https://github.com/caronc/apprise/wiki/config_yaml>`_.
 Email senders encode the name of the desired configuration file into the
