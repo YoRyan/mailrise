@@ -56,6 +56,13 @@ Pushover.
 Installation
 ============
 
+As a Docker container
+---------------------
+
+An official Docker image is available
+`from Docker Hub <https://hub.docker.com/r/yoryan/mailrise>`_. To use it, you
+must bind mount a configuration file to ``/etc/mailrise.conf``.
+
 As a systemd service
 --------------------
 
