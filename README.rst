@@ -18,7 +18,8 @@ Mailrise is an SMTP server that converts the emails it receives into
 case is as an email relay for a home lab or network. By accepting ordinary
 email, Mailrise enables Linux servers, Internet of Things devices, surveillance
 systems, and outdated software to gain access to the full suite of 60+
-notification services supported by Apprise.
+notification services supported by Apprise, from Matrix to Nextcloud to your
+desktop.
 
 A Mailrise daemon is configured with a list of Apprise
 `configuration files <https://github.com/caronc/apprise/wiki/config_yaml>`_.
