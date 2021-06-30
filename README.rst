@@ -19,7 +19,7 @@ case is as an email relay for a home lab or network. By accepting ordinary
 email, Mailrise enables Linux servers, Internet of Things devices, surveillance
 systems, and outdated software to gain access to the full suite of 60+
 notification services supported by Apprise, from Matrix to Nextcloud to your
-desktop.
+desktop or mobile device.
 
 Just as email brought written messages into the 21st century, Mailrise
 brings email notifications into the year 2021 and beyond.
