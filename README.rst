@@ -1,3 +1,7 @@
+.. image:: src/mailrise/asset/mailrise-logo.png
+  :alt: Mailrise logo
+
+
 ========
 mailrise
 ========

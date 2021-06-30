@@ -5,6 +5,7 @@ This is the YAML configuration parser for Mailrise.
 from __future__ import annotations
 
 import io
+import os
 import typing as typ
 from dataclasses import dataclass
 from enum import Enum
@@ -12,6 +13,7 @@ from logging import Logger
 
 import apprise  # type: ignore
 import yaml
+from apprise.common import NotifyType  # type: ignore
 
 
 class ConfigFileError(Exception):
@@ -112,8 +114,33 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
 def _load_apprise(config: dict[str, typ.Any]) -> apprise.Apprise:
     if not isinstance(config, dict):
         raise ConfigFileError("apprise node not a mapping")
-    aconfig = apprise.AppriseConfig()
+    apasset = apprise.AppriseAsset(
+        app_id='Mailrise',
+        app_desc='Mailrise SMTP Gateway',
+        app_url='https://mailrise.xyz',
+        html_notify_map={
+            NotifyType.INFO: '#2e6e99',
+            NotifyType.SUCCESS: '#2e992e',
+            NotifyType.WARNING: '#99972e',
+            NotifyType.FAILURE: '#993a2e'
+        },
+        theme=None,
+        default_extension='.png',
+        image_url_mask='https://github.com/YoRyan/apprise/raw/master/'
+                       'src/mailrise/asset/mailrise-{TYPE}-{XY}{EXTENSION}',
+        image_url_logo='https://github.com/YoRyan/apprise/raw/master/'
+                       'src/mailrise/asset/mailrise-logo.png',
+        image_path_mask=os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                'asset',
+                'mailrise-{TYPE}-{XY}{EXTENSION}'
+            )
+        )
+    )
+    aconfig = apprise.AppriseConfig(asset=apasset)
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
+
     apobj = apprise.Apprise()
     apobj.add(aconfig)
     return apobj
