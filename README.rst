@@ -105,7 +105,8 @@ tls.certfile  string     If TLS is enabled, specifies the path to the certificat
                          format.
 tls.keyfile   string     If TLS is enabled, specifies the path to the key file.
                          This file must be unencrypted and in PEM format.
-smtp.hostname string     Specifies the hostname used in any SMTP EHLO replies.
+smtp.hostname string     Specifies the hostname used when responding to the EHLO
+                         command.
 
                          Defaults to the system FQDN.
 ============= ========== ========================================================
