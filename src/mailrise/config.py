@@ -28,9 +28,9 @@ DEFAULT_ASSET = apprise.AppriseAsset(
     },
     theme=None,
     default_extension='.png',
-    image_url_mask='https://github.com/YoRyan/apprise/raw/master/'
+    image_url_mask='https://raw.githubusercontent.com/YoRyan/mailrise/main/'
                    'src/mailrise/asset/mailrise-{TYPE}-{XY}{EXTENSION}',
-    image_url_logo='https://github.com/YoRyan/apprise/raw/master/'
+    image_url_logo='https://raw.githubusercontent.com/YoRyan/mailrise/main/'
                    'src/mailrise/asset/mailrise-logo.png',
     image_path_mask=os.path.abspath(
         os.path.join(
