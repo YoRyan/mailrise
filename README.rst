@@ -22,7 +22,9 @@ notification services supported by Apprise, from Matrix to Nextcloud to your
 desktop or mobile device.
 
 Just as email brought written messages into the 21st century, Mailrise
-brings email notifications into the year 2021 and beyond.
+brings email notifications into the year 2021 and beyond. Compared to a
+conventional SMTP server, it's more secure, too—no more replicating your Gmail
+password to each of your Linux boxes!
 
 A Mailrise daemon is configured with a list of Apprise
 `configuration files <https://github.com/caronc/apprise/wiki/config_yaml>`_.
