@@ -1,4 +1,4 @@
-.. image:: src/mailrise/asset/mailrise-logo.png
+.. image:: https://raw.githubusercontent.com/YoRyan/mailrise/main/src/mailrise/asset/mailrise-logo.png
   :alt: Mailrise logo
 
 
