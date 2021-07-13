@@ -10,6 +10,7 @@ import typing as typ
 from dataclasses import dataclass
 from enum import Enum
 from logging import Logger
+from string import Template
 
 import apprise  # type: ignore
 import yaml
@@ -63,6 +64,20 @@ class TLSMode(Enum):
 
 
 @dataclass
+class Sender:
+    """A configured target for Apprise notifications.
+
+    Attributes:
+        apprise: The Apprise instance.
+        title_template: The template string for notification title texts.
+        body_template: The template string for notification body texts.
+    """
+    apprise: apprise.Apprise
+    title_template: Template
+    body_template: Template
+
+
+@dataclass
 class MailriseConfig:
     """Configuration data for a Mailrise instance.
 
@@ -74,8 +89,8 @@ class MailriseConfig:
         tls_certfile: The path to the TLS certificate chain file.
         tls_keyfile: The path to the TLS key file.
         smtp_hostname: The advertised SMTP server hostname.
-        senders: A dictionary of Apprise senders. The key is the name of the
-            configuration, and the value is the Apprise instance itself.
+        senders: A dictionary of notification targets. The key is the name of
+            the configuration, and the value is the Sender instance itself.
     """
     logger: Logger
     listen_host: str
@@ -84,7 +99,7 @@ class MailriseConfig:
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
-    senders: dict[str, apprise.Apprise]
+    senders: dict[str, Sender]
 
 
 def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
@@ -122,7 +137,7 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
-    senders = {key: _load_apprise(config) for key, config in yml_configs.items()}
+    senders = {key: _load_sender(config) for key, config in yml_configs.items()}
 
     logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
@@ -137,11 +152,23 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     )
 
 
-def _load_apprise(config: dict[str, typ.Any]) -> apprise.Apprise:
+def _load_sender(config: dict[str, typ.Any]) -> Sender:
     if not isinstance(config, dict):
-        raise ConfigFileError("apprise node not a mapping")
+        raise ConfigFileError("apprise config node not a mapping")
+
+    # Extract Mailrise-specific values.
+    mr_config = config.get('mailrise', {})
+    config.pop('mailrise', None)
+    title_template = mr_config.get('title_template', '$subject ($from)')
+    body_template = mr_config.get('body_template', '$body')
+
     aconfig = apprise.AppriseConfig(asset=DEFAULT_ASSET)
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
     apobj = apprise.Apprise()
     apobj.add(aconfig)
-    return apobj
+
+    return Sender(
+        apprise=apobj,
+        title_template=Template(title_template),
+        body_template=Template(body_template)
+    )

@@ -41,9 +41,9 @@ def test_load() -> None:
     assert len(mrise.senders) == 1
     assert 'test' in mrise.senders
 
-    arise = mrise.senders['test']
-    assert len(arise) == 1
-    assert arise[0].url().startswith('json://localhost/')
+    sender = mrise.senders['test']
+    assert len(sender.apprise) == 1
+    assert sender.apprise[0].url().startswith('json://localhost/')
 
 
 def test_multi_load() -> None:
@@ -63,6 +63,25 @@ def test_multi_load() -> None:
     for k in ('test1', 'test2'):
         assert k in mrise.senders
 
-        arise = mrise.senders[k]
-        assert len(arise) == 1
-        assert arise[0].url().startswith('json://localhost/')
+        sender = mrise.senders[k]
+        assert len(sender.apprise) == 1
+        assert sender.apprise[0].url().startswith('json://localhost/')
+
+
+def test_mailrise_options() -> None:
+    """Tests a successful load with :fun:`load_config` with Mailrise-specific
+    options."""
+    f = StringIO("""
+        configs:
+          test:
+            urls:
+              - json://localhost
+            mailrise:
+              title_template: ""
+    """)
+    mrise = load_config(_logger, f)
+    assert len(mrise.senders) == 1
+    assert 'test' in mrise.senders
+
+    sender = mrise.senders['test']
+    assert sender.title_template.template == ''

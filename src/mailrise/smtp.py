@@ -117,7 +117,7 @@ class AppriseHandler:
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, EmailMessage)
         notification = parsemessage(message)
-        self.config.logger.info('Accepted email, subject: %s', notification.title)
+        self.config.logger.info('Accepted email, subject: %s', notification.subject)
 
         rcpts = (parsercpt(addr) for addr in envelope.rcpt_tos)
         aws = (notification.submit(self.config, rcpt) for rcpt in rcpts)
@@ -142,15 +142,17 @@ class Attachment:
 
 @dataclass
 class EmailNotification:
-    """A notification template that has been constructed from an email message.
+    """Represents an email accepted for notifying.
 
     Attributes:
-        title: The title of the notification.
-        body: The contents of the notification.
-        body_format: The type of the contents of the notification.
-        attachments: The attachments attached to the notification.
+        subject: The email subject.
+        from_: The email sender address.
+        body: The contents of the email.
+        body_format: The type of the contents of the email.
+        attachments: The email attachments.
     """
-    title: str
+    subject: str
+    from_: str
     body: str
     body_format: apprise.NotifyFormat
     attachments: list[Attachment]
@@ -165,13 +167,20 @@ class EmailNotification:
         Raises:
             AppriseNotifyFailure: Apprise failed to submit the notification.
         """
-        apobj = config.senders[rcpt.config_key]
+        sender = config.senders[rcpt.config_key]
+        mapping = {
+            'subject': self.subject,
+            'from': self.from_,
+            'body': self.body,
+            'config': rcpt.config_key,
+            'type': rcpt.notify_type
+        }
         attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
         notify = functools.partial(
-            apobj.notify,
-            title=self.title,
-            body=self.body,
-            body_format=self.body_format,
+            sender.apprise.notify,
+            title=sender.title_template.safe_substitute(mapping),
+            body=sender.body_template.safe_substitute(mapping),
+            body_format=self.body_format,  # TODO: Allow config to override this.
             notify_type=rcpt.notify_type,
             attach=apprise.AppriseAttachment(attachbase)
         )
@@ -192,9 +201,6 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     Returns:
         The `EmailNotification` instance.
     """
-    subject = msg.get('Subject', '(no subject)')
-    sender = msg.get('From', None)
-    title = f'{subject} ({sender})' if sender else f'{subject} (no sender)'
     body_part = msg.get_body()
     body: str
     body_format: apprise.NotifyFormat
@@ -209,7 +215,8 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     attachments = [_parseattachment(part) for part in msg.iter_attachments()
                    if isinstance(part, EmailMessage)]
     return EmailNotification(
-        title=title,
+        subject=msg.get('Subject', '[no subject]'),
+        from_=msg.get('From', '[no sender]'),
         body=body,
         body_format=body_format,
         attachments=attachments
