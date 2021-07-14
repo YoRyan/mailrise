@@ -20,9 +20,9 @@ from tempfile import NamedTemporaryFile
 from mailrise.config import MailriseConfig
 
 import apprise  # type: ignore
+from aiosmtpd.smtp import Envelope, Session, SMTP
 from apprise.attachment import AttachBase  # type: ignore
 from apprise.common import ContentLocation  # type: ignore
-from aiosmtpd.smtp import Envelope, Session, SMTP
 
 
 class RecipientError(Exception):
