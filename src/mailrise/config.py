@@ -71,10 +71,13 @@ class Sender:
         apprise: The Apprise instance.
         title_template: The template string for notification title texts.
         body_template: The template string for notification body texts.
+        body_format: The content type for notifications. If None, this will be
+            auto-detected from the body parts of emails.
     """
     apprise: apprise.Apprise
     title_template: Template
     body_template: Template
+    body_format: typ.Optional[apprise.NotifyFormat]
 
 
 @dataclass
@@ -170,5 +173,6 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
     return Sender(
         apprise=apobj,
         title_template=Template(title_template),
-        body_template=Template(body_template)
+        body_template=Template(body_template),
+        body_format=mr_config.get('body_format', None)
     )

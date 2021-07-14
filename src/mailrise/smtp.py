@@ -180,7 +180,8 @@ class EmailNotification:
             sender.apprise.notify,
             title=sender.title_template.safe_substitute(mapping),
             body=sender.body_template.safe_substitute(mapping),
-            body_format=self.body_format,  # TODO: Allow config to override this.
+            # Use the configuration body format if specified.
+            body_format=sender.body_format or self.body_format,
             notify_type=rcpt.notify_type,
             attach=apprise.AppriseAttachment(attachbase)
         )
