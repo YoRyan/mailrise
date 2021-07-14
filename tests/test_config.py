@@ -4,6 +4,7 @@ from io import StringIO
 from mailrise.config import ConfigFileError, load_config
 
 import pytest
+from apprise import NotifyFormat  # type: ignore
 
 
 _logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ def test_mailrise_options() -> None:
               - json://localhost
             mailrise:
               title_template: ""
+              body_format: "text"
     """)
     mrise = load_config(_logger, f)
     assert len(mrise.senders) == 1
@@ -85,3 +87,15 @@ def test_mailrise_options() -> None:
 
     sender = mrise.senders['test']
     assert sender.title_template.template == ''
+    assert sender.body_format == NotifyFormat.TEXT
+
+    with pytest.raises(ConfigFileError):
+        f = StringIO("""
+            configs:
+              test:
+                urls:
+                  - json://localhost
+                mailrise:
+                  body_format: "BAD"
+        """)
+        load_config(_logger, f)

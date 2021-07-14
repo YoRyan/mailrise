@@ -164,6 +164,12 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
     config.pop('mailrise', None)
     title_template = mr_config.get('title_template', '$subject ($from)')
     body_template = mr_config.get('body_template', '$body')
+    body_format = mr_config.get('body_format', None)
+    if not any(body_format == c for c in (None,
+                                          apprise.NotifyFormat.TEXT,
+                                          apprise.NotifyFormat.HTML,
+                                          apprise.NotifyFormat.MARKDOWN)):
+        raise ConfigFileError(f"invalid apprise notification format: {body_format}")
 
     aconfig = apprise.AppriseConfig(asset=DEFAULT_ASSET)
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
@@ -174,5 +180,5 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
         apprise=apobj,
         title_template=Template(title_template),
         body_template=Template(body_template),
-        body_format=mr_config.get('body_format', None)
+        body_format=body_format
     )
