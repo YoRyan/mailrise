@@ -106,37 +106,77 @@ encapsulates the daemon's entire configuration. The root node of this file shoul
 be a dictionary. Mailrise accepts the following keys (periods denote
 sub-dictionaries):
 
-============= ========== ========================================================
-Key           Type       Value
-============= ========== ========================================================
-configs       dictionary Contains the Apprise configurations. The key is the
-                         name of the configuration and the value is the
-                         `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
-                         itself, exactly as it would be specified in a standalone
-                         file for Apprise.
+====================================== ========== ==========================================================================
+Key                                    Type       Value
+====================================== ========== ==========================================================================
+configs.<name>                         dictionary ``<name>`` denotes the name of the configuration. It must *not* contain a
+                                                  period.
 
-                         The configuration name must *not* contain a period.
-listen.host   string     Specifies the network address to listen on.
+                                                  The dictionary value is the Apprise
+                                                  `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
+                                                  itself, exactly as it would be specified in a standalone file for Apprise.
 
-                         Defaults to all interfaces.
-listen.port   number     Specifies the network port to listen on.
+                                                  In addition to the Apprise configuration, some Mailrise-exclusive options
+                                                  can be specified under this key. See the ``mailrise`` options below.
+configs.<name>.mailrise.title_template string     The template string used to create notification titles. See :ref:`template
+                                                  strings <template-strings>` below.
 
-                         Defaults to 8025.
-tls.mode      string     Selects the operating mode for TLS encryption. Must be
-                         ``off``, ``onconnect``, ``starttls``, or
-                         ``starttlsrequire``.
+                                                  Defaults to ``$subject ($from)``.
+configs.<name>.mailrise.body_template  string     The template string used to create notification body texts. See
+                                                  :ref:`template strings <template-strings>` below.
 
-                         Defaults to off.
-tls.certfile  string     If TLS is enabled, specifies the path to the certificate
-                         chain file. This file must be unencrypted and in PEM
-                         format.
-tls.keyfile   string     If TLS is enabled, specifies the path to the key file.
-                         This file must be unencrypted and in PEM format.
-smtp.hostname string     Specifies the hostname used when responding to the EHLO
-                         command.
+                                                  Defaults to ``$body``.
+configs.<name>.mailrise.body_format    string     Sets the data type for notification body texts. Must be ``text``,
+                                                  ``html``, or ``markdown``. Apprise
+                                                  `uses <https://github.com/caronc/apprise/wiki/Development_API#notify--send-notifications>`_
+                                                  this information to determine whether or not the upstream notification
+                                                  service can handle the provided content.
 
-                         Defaults to the system FQDN.
-============= ========== ========================================================
+                                                  If not specified here, the data type is inferred from the body part of the
+                                                  email message. So if you have your body template set to anything but the
+                                                  default value of ``$body``, you might want to set a data type here.
+listen.host                            string     Specifies the network address to listen on.
+
+                                                  Defaults to all interfaces.
+listen.port                            number     Specifies the network port to listen on.
+
+                                                  Defaults to 8025.
+tls.mode                               string     Selects the operating mode for TLS encryption. Must be ``off``,
+                                                  ``onconnect``, ``starttls``, or ``starttlsrequire``.
+
+                                                  Defaults to off.
+tls.certfile                           string     If TLS is enabled, specifies the path to the certificate chain file. This
+                                                  file must be unencrypted and in PEM format.
+tls.keyfile                            string     If TLS is enabled, specifies the path to the key file. This file must be
+                                                  unencrypted and in PEM format.
+smtp.hostname                          string     Specifies the hostname used when responding to the EHLO command.
+
+                                                  Defaults to the system FQDN.
+====================================== ========== ==========================================================================
+
+.. _template-strings:
+
+Template strings
+----------------
+
+You can use Python's `template strings
+<https://docs.python.org/3/library/string.html#template-strings>`_ to specify
+custom templates that Mailrise will construct your notifications from. Templates
+make use of variables that communicate information about the email message. Use
+dollar signs (``$``) to insert variables.
+
+The following variables are available for both title and body templates:
+
+========== ====================================================================================
+Identifier Value
+========== ====================================================================================
+subject    The email subject.
+from       The sender's full address.
+body       The full contents of the email body.
+config     The name of the selected Apprise configuration.
+type       The class of Apprise notification. This is "info", "success", "warning", or
+           "failure".
+========== ====================================================================================
 
 
 .. _pyscaffold-notes:
