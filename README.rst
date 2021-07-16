@@ -118,12 +118,12 @@ configs.<name>                         dictionary ``<name>`` denotes the name of
 
                                                   In addition to the Apprise configuration, some Mailrise-exclusive options
                                                   can be specified under this key. See the ``mailrise`` options below.
-configs.<name>.mailrise.title_template string     The template string used to create notification titles. See :ref:`template
-                                                  strings <template-strings>` below.
+configs.<name>.mailrise.title_template string     The template string used to create notification titles. See "Template
+                                                  strings" below.
 
                                                   Defaults to ``$subject ($from)``.
-configs.<name>.mailrise.body_template  string     The template string used to create notification body texts. See
-                                                  :ref:`template strings <template-strings>` below.
+configs.<name>.mailrise.body_template  string     The template string used to create notification body texts. See "Template
+                                                  strings" below.
 
                                                   Defaults to ``$body``.
 configs.<name>.mailrise.body_format    string     Sets the data type for notification body texts. Must be ``text``,
