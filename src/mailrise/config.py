@@ -173,8 +173,7 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
 
     aconfig = apprise.AppriseConfig(asset=DEFAULT_ASSET)
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
-    apobj = apprise.Apprise()
-    apobj.add(aconfig)
+    apobj = apprise.Apprise(aconfig)
 
     return Sender(
         apprise=apobj,
