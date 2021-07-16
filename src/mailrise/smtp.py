@@ -277,5 +277,5 @@ class AttachMailrise(AttachBase):
         return f'mailrise://{hex(id(self))}'
 
     @staticmethod
-    def parse_url(url: str, **kwargs: typ.Any) -> typ.Any:
-        return None
+    def parse_url(url: str, verify_host: bool = True) -> typ.Dict[str, typ.Any]:
+        return {}
