@@ -244,7 +244,8 @@ class AttachMailrise(AttachBase):
 
     _mrfile = None  # Satisfy mypy by initializing as an Optional.
 
-    def __init__(self, config: MailriseConfig, attach: Attachment, **kwargs) -> None:
+    def __init__(self, config: MailriseConfig,
+                 attach: Attachment, **kwargs: typ.Any) -> None:
         super().__init__(**kwargs)
         self._mrconfig = config
         self._mrattach = attach
@@ -272,9 +273,9 @@ class AttachMailrise(AttachBase):
             self._mrfile = None
         super().invalidate()
 
-    def url(self, **kwargs) -> str:
+    def url(self, **kwargs: typ.Any) -> str:
         return f'mailrise://{hex(id(self))}'
 
     @staticmethod
-    def parse_url(url: str, **kwargs):
+    def parse_url(url: str, **kwargs: typ.Any) -> typ.Any:
         return None

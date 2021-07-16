@@ -10,6 +10,7 @@ import ssl
 import sys
 import typing as typ
 from asyncio import get_event_loop
+from functools import partial
 
 from mailrise import __version__
 from mailrise.config import ConfigFileError, TLSMode, load_config
@@ -129,17 +130,19 @@ def main(args: list[str]) -> None:
     # TODO: Use UnthreadedController (with `loop`) when that becomes available
     # in stable aiosmtpd.
 
-    controller = Controller(
+    makecon = partial(
+        Controller,
         AppriseHandler(config=config),
         hostname=config.listen_host,
         port=config.listen_port,
-        ssl_context=tls_onconnect,
         server_hostname=config.smtp_hostname,
         decode_data=False,
         ident=f'Mailrise {__version__}',
         tls_context=tls_starttls,
         require_starttls=tls_mode == TLSMode.STARTTLSREQUIRE
     )
+    controller = (makecon(ssl_context=tls_onconnect)
+                  if tls_onconnect is not None else makecon())
     try:
         controller.start()
     except Exception as e:
