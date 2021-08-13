@@ -86,7 +86,7 @@ def setup_logging(loglevel: int) -> None:
     Args:
       loglevel (int): Minimum loglevel for emitting messages.
     """
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+    logformat = "[%(asctime)s] %(levelname)s:%(name)s: %(message)s"
     logging.basicConfig(
         level=loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
     )
@@ -102,6 +102,7 @@ def main(args: list[str]) -> None:
     """
     pargs = parse_args(args)
     setup_logging(pargs.loglevel)
+    _logger.info("Starting mailrise...")
 
     try:
         config = load_config(_logger, pargs.config)

@@ -67,9 +67,13 @@ def parsercpt(addr: str) -> Recipient:
         The `Recipient` instance.
     """
     _, email = parseaddr(addr)
+    email_parts = email.split("@", 1)
+    email_user = email_parts[0]
+    email_domain = email_parts[1]
+
     rx_types = r'((?:\.(?:info|success|warning|failure))?)'
-    rx = f'(?:"([^"@\\.]*){rx_types}"|([^@\\.]*){rx_types})@mailrise\\.xyz$'
-    match = re.search(rx, email, re.IGNORECASE)
+    rx = f'(?:"([^"@\\.]*){rx_types}"|([^@\\.]*){rx_types})$'
+    match = re.search(rx, email_user, re.IGNORECASE)
     if match is None:
         raise RecipientError(f"'{email}' is not a valid mailrise recipient")
     quoted = match.group(1) is not None
@@ -86,7 +90,7 @@ def parsercpt(addr: str) -> Recipient:
     elif ntypes == '.failure':
         ntype = apprise.NotifyType.FAILURE
 
-    return Recipient(config_key=key, notify_type=ntype)
+    return Recipient(config_key=f"{key}@{email_domain}", notify_type=ntype)
 
 
 @dataclass

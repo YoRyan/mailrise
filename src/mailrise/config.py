@@ -98,6 +98,7 @@ class MailriseConfig:
     logger: Logger
     listen_host: str
     listen_port: int
+    default_domain: str
     tls_mode: TLSMode
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
@@ -140,13 +141,20 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
-    senders = {key: _load_sender(config) for key, config in yml_configs.items()}
+    default_domain = yml.get('default_domain', 'mailrise.xyz')
+
+    senders = {}
+    for key, config in yml_configs.items():
+        if "@" not in key:
+            key = f"{key}@{default_domain}"
+        senders[key] = _load_sender(config)
 
     logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
         logger=logger,
         listen_host=yml_listen.get('host', ''),
         listen_port=yml_listen.get('port', 8025),
+        default_domain=default_domain,
         tls_mode=tls_mode,
         tls_certfile=tls_certfile,
         tls_keyfile=tls_keyfile,
