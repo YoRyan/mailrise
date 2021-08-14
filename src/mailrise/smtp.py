@@ -6,11 +6,9 @@ from __future__ import annotations
 
 import asyncio
 import email.policy
-import functools
 import os
 import re
 import typing as typ
-from asyncio import get_running_loop
 from dataclasses import dataclass
 from email.message import EmailMessage
 from email.parser import BytesParser
@@ -176,8 +174,7 @@ class EmailNotification:
             'type': rcpt.notify_type
         }
         attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
-        notify = functools.partial(
-            sender.apprise.notify,
+        res = await sender.apprise.async_notify(
             title=sender.title_template.safe_substitute(mapping),
             body=sender.body_template.safe_substitute(mapping),
             # Use the configuration body format if specified.
@@ -185,7 +182,6 @@ class EmailNotification:
             notify_type=rcpt.notify_type,
             attach=apprise.AppriseAttachment(attachbase)
         )
-        res = await get_running_loop().run_in_executor(None, notify)
         # NOTE: This should probably be called by Apprise itself, but it isn't?
         for ab in attachbase:
             ab.invalidate()
