@@ -105,7 +105,7 @@ class MailriseConfig:
     senders: dict[str, Sender]
 
 
-def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
+def load_config(logger: Logger, f: str) -> MailriseConfig:
     """Loads configuration data from a YAML file.
 
     Args:
@@ -118,7 +118,8 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     Raises:
         ConfigFileError: The configuration file is invalid.
     """
-    yml = yaml.safe_load(f)
+    with open(f, 'r') as file:
+        yml = yaml.safe_load(file)
     if not isinstance(yml, dict):
         raise ConfigFileError("root node not a mapping")
 

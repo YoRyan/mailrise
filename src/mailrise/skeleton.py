@@ -39,6 +39,7 @@ _logger = logging.getLogger(__name__)
 
 
 def parse_args(args: list[str]) -> argparse.Namespace:
+    import os
     """Parse command line parameters.
 
     Args:
@@ -56,10 +57,12 @@ def parse_args(args: list[str]) -> argparse.Namespace:
         version="mailrise {ver}".format(ver=__version__),
     )
     parser.add_argument(
+        "-c",
+        "--config",
         dest="config",
+        default=os.environ.get("CONFIG", "/etc/mailrise.yaml"),
         help="path to configuration file",
-        type=argparse.FileType("r"),
-        metavar="CONFIG"
+        metavar="CONFIG",
     )
     parser.add_argument(
         "-v",
