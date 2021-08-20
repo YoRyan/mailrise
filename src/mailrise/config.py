@@ -7,10 +7,10 @@ from __future__ import annotations
 import io
 import os
 import typing as typ
-from dataclasses import dataclass
 from enum import Enum
 from logging import Logger
 from string import Template
+from typing import NamedTuple
 
 import apprise  # type: ignore
 import yaml
@@ -63,8 +63,7 @@ class TLSMode(Enum):
     STARTTLSREQUIRE = 'STARTTLS, required'
 
 
-@dataclass
-class Sender:
+class Sender(NamedTuple):
     """A configured target for Apprise notifications.
 
     Attributes:
@@ -80,8 +79,7 @@ class Sender:
     body_format: typ.Optional[apprise.NotifyFormat]
 
 
-@dataclass
-class MailriseConfig:
+class MailriseConfig(NamedTuple):
     """Configuration data for a Mailrise instance.
 
     Attributes:

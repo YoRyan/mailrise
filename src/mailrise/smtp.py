@@ -9,7 +9,6 @@ import email.policy
 import os
 import re
 import typing as typ
-from dataclasses import dataclass
 from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import parseaddr
@@ -43,8 +42,7 @@ class AppriseNotifyFailure(Exception):
     pass
 
 
-@dataclass
-class Recipient:
+class Recipient(typ.NamedTuple):
     """The routing information encoded into a recipient address.
 
     Attributes:
@@ -87,8 +85,7 @@ def parsercpt(addr: str) -> Recipient:
     return Recipient(config_key=key, notify_type=ntype)
 
 
-@dataclass
-class AppriseHandler:
+class AppriseHandler(typ.NamedTuple):
     """The aiosmtpd handler for Mailrise. Dispatches Apprise notifications.
 
     Attributes:
@@ -126,8 +123,7 @@ class AppriseHandler:
         return '250 OK'
 
 
-@dataclass
-class Attachment:
+class Attachment(typ.NamedTuple):
     """Represents an email attachment.
 
     Attributes:
@@ -138,8 +134,7 @@ class Attachment:
     filename: str
 
 
-@dataclass
-class EmailNotification:
+class EmailNotification(typ.NamedTuple):
     """Represents an email accepted for notifying.
 
     Attributes:
