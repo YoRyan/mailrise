@@ -9,4 +9,5 @@ FROM python:3-slim
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 EXPOSE 8025
-CMD [ "mailrise", "/etc/mailrise.conf" ]
+ENTRYPOINT ["mailrise"]
+CMD ["/etc/mailrise.conf"]
