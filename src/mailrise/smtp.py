@@ -14,7 +14,8 @@ from email.parser import BytesParser
 from email.utils import parseaddr
 from tempfile import NamedTemporaryFile
 
-from mailrise.config import MailriseConfig
+from mailrise.config import Key, MailriseConfig
+from mailrise.util import parseaddrparts
 
 import apprise  # type: ignore
 from aiosmtpd.smtp import Envelope, Session, SMTP
@@ -46,10 +47,10 @@ class Recipient(typ.NamedTuple):
     """The routing information encoded into a recipient address.
 
     Attributes:
-        config_key: An index into the `configs` dictionary.
+        key: An index into the dictionary of senders.
         notify_type: The type of notification to send.
     """
-    config_key: str
+    key: Key
     notify_type: apprise.NotifyType
 
 
@@ -63,26 +64,24 @@ def parsercpt(addr: str) -> Recipient:
         The `Recipient` instance.
     """
     _, email = parseaddr(addr)
-    rx_types = r'((?:\.(?:info|success|warning|failure))?)'
-    rx = f'(?:"([^"@\\.]*){rx_types}"|([^@\\.]*){rx_types})@mailrise\\.xyz$'
-    match = re.search(rx, email, re.IGNORECASE)
-    if match is None:
+    user, domain = parseaddrparts(email)
+    if not user or not domain:
         raise RecipientError(f"'{email}' is not a valid mailrise recipient")
-    quoted = match.group(1) is not None
-    key = match.group(1) if quoted else match.group(3)
-    ntypes = (match.group(2) if quoted else match.group(4)).lower()
-
+    match = re.search(
+        r'(.*)\.(info|success|warning|failure)$', user, re.IGNORECASE)
     ntype = apprise.NotifyType.INFO
-    if ntypes == '.info':
-        pass
-    elif ntypes == '.success':
-        ntype = apprise.NotifyType.SUCCESS
-    elif ntypes == '.warning':
-        ntype = apprise.NotifyType.WARNING
-    elif ntypes == '.failure':
-        ntype = apprise.NotifyType.FAILURE
-
-    return Recipient(config_key=key, notify_type=ntype)
+    if match is not None:
+        user = match.group(1)
+        ntypes = match.group(2)
+        if ntypes == 'info':
+            pass
+        elif ntypes == 'success':
+            ntype = apprise.NotifyType.SUCCESS
+        elif ntypes == 'warning':
+            ntype = apprise.NotifyType.WARNING
+        elif ntypes == 'failure':
+            ntype = apprise.NotifyType.FAILURE
+    return Recipient(key=Key(user=user, domain=domain.lower()), notify_type=ntype)
 
 
 class AppriseHandler(typ.NamedTuple):
@@ -99,7 +98,7 @@ class AppriseHandler(typ.NamedTuple):
             rcpt = parsercpt(address)
         except RecipientError as e:
             return f'550 {e.message}'
-        if rcpt.config_key not in self.config.senders:
+        if rcpt.key not in self.config.senders:
             return '551 recipient does not exist in configuration file'
         self.config.logger.info('Accepted recipient: %s', address)
         envelope.rcpt_tos.append(address)
@@ -160,12 +159,13 @@ class EmailNotification(typ.NamedTuple):
         Raises:
             AppriseNotifyFailure: Apprise failed to submit the notification.
         """
-        sender = config.senders[rcpt.config_key]
+        sender = config.senders[rcpt.key]
         mapping = {
             'subject': self.subject,
             'from': self.from_,
             'body': self.body,
-            'config': rcpt.config_key,
+            'to': str(rcpt.key),
+            'config': rcpt.key.as_configured(),
             'type': rcpt.notify_type
         }
         attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
