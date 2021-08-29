@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 1.2.0
+=============
+
+:Date: August 28, 2021
+
+- Add the ability to use a full email address as a sender target
+- Upgrade to Apprise v0.9.4
+
 Version 1.1.0
 =============
 
