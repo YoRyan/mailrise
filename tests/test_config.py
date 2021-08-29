@@ -1,7 +1,7 @@
 import logging
 from io import StringIO
 
-from mailrise.config import ConfigFileError, load_config
+from mailrise.config import ConfigFileError, Key, load_config
 
 import pytest
 from apprise import NotifyFormat  # type: ignore
@@ -40,9 +40,10 @@ def test_load() -> None:
     """)
     mrise = load_config(_logger, f)
     assert len(mrise.senders) == 1
-    assert 'test' in mrise.senders
+    key = Key(user='test')
+    assert key in mrise.senders
 
-    sender = mrise.senders['test']
+    sender = mrise.senders[key]
     assert len(sender.apprise) == 1
     assert sender.apprise[0].url().startswith('json://localhost/')
 
@@ -61,10 +62,11 @@ def test_multi_load() -> None:
     mrise = load_config(_logger, f)
     assert len(mrise.senders) == 2
 
-    for k in ('test1', 'test2'):
-        assert k in mrise.senders
+    for user in ('test1', 'test2'):
+        key = Key(user=user)
+        assert key in mrise.senders
 
-        sender = mrise.senders[k]
+        sender = mrise.senders[key]
         assert len(sender.apprise) == 1
         assert sender.apprise[0].url().startswith('json://localhost/')
 
@@ -83,9 +85,10 @@ def test_mailrise_options() -> None:
     """)
     mrise = load_config(_logger, f)
     assert len(mrise.senders) == 1
-    assert 'test' in mrise.senders
+    key = Key(user='test')
+    assert key in mrise.senders
 
-    sender = mrise.senders['test']
+    sender = mrise.senders[key]
     assert sender.title_template.template == ''
     assert sender.body_format == NotifyFormat.TEXT
 
@@ -99,3 +102,33 @@ def test_mailrise_options() -> None:
                   body_format: "BAD"
         """)
         load_config(_logger, f)
+
+
+def test_config_keys() -> None:
+    """Tests the config key parser with both string and full email formats."""
+    with pytest.raises(ConfigFileError):
+        f = StringIO("""
+            configs:
+              has.periods:
+                urls:
+                  - json://localhost
+        """)
+        load_config(_logger, f)
+    with pytest.raises(ConfigFileError):
+        f = StringIO("""
+            configs:
+              bademail@:
+                urls:
+                  - json://localhost
+        """)
+        load_config(_logger, f)
+    f = StringIO("""
+        configs:
+          user@example.com:
+            urls:
+              - json://localhost
+    """)
+    mrise = load_config(_logger, f)
+    assert len(mrise.senders) == 1
+    key = Key(user='user', domain='example.com')
+    assert key in mrise.senders

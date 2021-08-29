@@ -16,6 +16,8 @@ import apprise  # type: ignore
 import yaml
 from apprise.common import NotifyType  # type: ignore
 
+from mailrise.util import parseaddrparts
+
 
 DEFAULT_ASSET = apprise.AppriseAsset(
     app_id='Mailrise',
@@ -63,6 +65,25 @@ class TLSMode(Enum):
     STARTTLSREQUIRE = 'STARTTLS, required'
 
 
+class Key(NamedTuple):
+    """A unique identifier for a sender target.
+
+    Attributes:
+        user: The user portion of the recipient address.
+        domain: The domain portion of the recipient address, which defaults
+            to "mailrise.xyz".
+    """
+    user: str
+    domain: str = 'mailrise.xyz'
+
+    def __str__(self) -> str:
+        return f'{self.user}@{self.domain}'
+
+    def as_configured(self) -> str:
+        """Drop the domain part of this identifier if it is 'mailrise.xyz'."""
+        return self.user if self.domain == 'mailrise.xyz' else str(self)
+
+
 class Sender(NamedTuple):
     """A configured target for Apprise notifications.
 
@@ -90,8 +111,8 @@ class MailriseConfig(NamedTuple):
         tls_certfile: The path to the TLS certificate chain file.
         tls_keyfile: The path to the TLS key file.
         smtp_hostname: The advertised SMTP server hostname.
-        senders: A dictionary of notification targets. The key is the name of
-            the configuration, and the value is the Sender instance itself.
+        senders: A dictionary of notification targets. The key is the identifier
+            of the configuration, and the value is the Sender instance itself.
     """
     logger: Logger
     listen_host: str
@@ -100,7 +121,7 @@ class MailriseConfig(NamedTuple):
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
-    senders: dict[str, Sender]
+    senders: dict[Key, Sender]
 
 
 def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
@@ -138,7 +159,8 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
-    senders = {key: _load_sender(config) for key, config in yml_configs.items()}
+    senders = {_parsekey(key): _load_sender(config)
+               for key, config in yml_configs.items()}
 
     logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
@@ -151,6 +173,21 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
         smtp_hostname=yml_smtp.get('hostname', None),
         senders=senders
     )
+
+
+def _parsekey(s: str) -> Key:
+    def err():
+        return ConfigFileError(f"invalid config key '{s}'; should be a string or "
+                               "an email address without periods in the username")
+    if '@' in s:
+        user, domain = parseaddrparts(s)
+        if not user or not domain or '.' in user:
+            raise err()
+        return Key(user=user, domain=domain.lower())
+    elif '.' in s:
+        raise err()
+    else:
+        return Key(user=s)
 
 
 def _load_sender(config: dict[str, typ.Any]) -> Sender:

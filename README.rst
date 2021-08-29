@@ -110,7 +110,12 @@ sub-dictionaries):
 Key                                    Type       Value
 ====================================== ========== ==========================================================================
 configs.<name>                         dictionary ``<name>`` denotes the name of the configuration. It must *not* contain a
-                                                  period.
+                                                  period. Senders select this configuration by addressing their emails to
+                                                  ``<name>@mailrise.xyz``.
+
+                                                  It is also possible to use a full email address, such as
+                                                  ``mail@example.com``, as a name, in which case senders must use the entire
+                                                  address as their recipient address to select this configuration.
 
                                                   The dictionary value is the Apprise
                                                   `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
@@ -173,7 +178,9 @@ Identifier Value
 subject    The email subject.
 from       The sender's full address.
 body       The full contents of the email body.
-config     The name of the selected Apprise configuration.
+to         The full email address of the selected Apprise configuration.
+config     The name of the selected Apprise configuration, unless it uses a custom domain, in
+           which case this is equivalent to the "to" variable.
 type       The class of Apprise notification. This is "info", "success", "warning", or
            "failure".
 ========== ====================================================================================
