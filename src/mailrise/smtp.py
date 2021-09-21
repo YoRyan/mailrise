@@ -17,10 +17,16 @@ from tempfile import NamedTemporaryFile
 from mailrise.config import Key, MailriseConfig
 from mailrise.util import parseaddrparts
 
-import apprise  # type: ignore
+import apprise
 from aiosmtpd.smtp import Envelope, Session, SMTP
-from apprise.attachment import AttachBase  # type: ignore
-from apprise.common import ContentLocation  # type: ignore
+from apprise.common import ContentLocation
+
+# Mypy, for some reason, considers AttachBase a module, not a class.
+MYPY = False
+if MYPY:
+    from apprise.attachment.AttachBase import AttachBase
+else:
+    from apprise.attachment import AttachBase
 
 
 class RecipientError(Exception):
@@ -228,9 +234,6 @@ class AttachMailrise(AttachBase):
         config: The Mailrise configuration to use.
         attach: The `Attachment` instance.
     """
-    detected_name: typ.Optional[str]
-    download_path: typ.Optional[str]
-
     location = ContentLocation.LOCAL
 
     _mrfile = None  # Satisfy mypy by initializing as an Optional.

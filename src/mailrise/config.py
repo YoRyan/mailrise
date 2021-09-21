@@ -12,9 +12,9 @@ from logging import Logger
 from string import Template
 from typing import NamedTuple
 
-import apprise  # type: ignore
+import apprise
 import yaml
-from apprise.common import NotifyType  # type: ignore
+from apprise.common import NotifyType
 
 from mailrise.util import parseaddrparts
 

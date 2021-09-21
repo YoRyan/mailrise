@@ -4,7 +4,7 @@ from io import StringIO
 from mailrise.config import ConfigFileError, Key, load_config
 
 import pytest
-from apprise import NotifyFormat  # type: ignore
+from apprise import NotifyFormat
 
 
 _logger = logging.getLogger(__name__)

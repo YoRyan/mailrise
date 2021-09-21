@@ -4,7 +4,7 @@ from pathlib import Path
 from mailrise.config import Key
 from mailrise.smtp import RecipientError, parsemessage, parsercpt
 
-import apprise  # type: ignore
+import apprise
 import pytest
 
 
