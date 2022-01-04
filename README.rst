@@ -153,7 +153,9 @@ configs.<name>.mailrise.html_conversion         string     The HTML conversion s
 
                                                            Defaults to ``None``.
 configs.<name>.mailrise.send_message_encrypted    bool     The HTML conversion string is used to convert HTML messages to text format. The original 
-                                                           formatting is kept the best it can be when converting.
+                                                           formatting is kept the best it can be when converting. 
+							   
+							   Sending encrypted messages requires a set encryption password and random salt.
                                                            
                                                            Defaults to ``None``.
 														   
@@ -183,7 +185,9 @@ encryption.encryption_password                  string     Specifies the encrypt
 encryption.encryption_random_salt               bytes      Specifies the encryption random salt used to encrypt the SMTP message.
                                                            
                                                            Defaults to ``None``.
-website.enable_decryptor_companion              bool       Enables the decryptor companion website.
+website.enable_decryptor_companion              bool       Enables the decryptor companion website. 
+
+							   Requires a set encryption password and random salt.
                                                            
                                                            Defaults to ``False``.
 website.decryptor_companion_url                 string     The decryptor URL to listen on. This is used for the message link. Can use URL or hosted Mailrise host IP address.
