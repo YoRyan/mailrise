@@ -145,7 +145,7 @@ configs.<name>.mailrise.body_format             string     Sets the data type fo
                                                            this information to determine whether or not the upstream notification
                                                            service can handle the provided content.
 
-														   If not specified here, the data type is inferred from the body part of the
+							   If not specified here, the data type is inferred from the body part of the
                                                            email message. So if you have your body template set to anything but the
                                                            default value of ``$body``, you might want to set a data type here.
 configs.<name>.mailrise.html_conversion         string     The HTML conversion string is used to convert HTML messages to text format. The original 
