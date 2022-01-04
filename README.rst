@@ -26,6 +26,14 @@ brings email notifications into the year 2021 and beyond. Compared to a
 conventional SMTP server, it's more secure, too—no more replicating your Gmail
 password to each of your Linux boxes!
 
+Mailrise offers the ability to encrypt any received SMTP message using the cryptography 
+library. No matter what receiving service from Apprise notification service, any SMTP 
+message can encrypt. Mailrise offers a decryption companion to allow message decryption. 
+The decrypt.html is editable for a different look.
+
+A sample_mailrise.yaml file is in the root directory. This file can be renamed to 
+mailrise.yaml and edited.
+
 A Mailrise daemon is configured with a list of Apprise
 `configuration files <https://github.com/caronc/apprise/wiki/config_yaml>`_.
 Email senders encode the name of the desired configuration file into the
@@ -137,6 +145,15 @@ configs.<name>.mailrise.body_format    string     Sets the data type for notific
                                                   this information to determine whether or not the upstream notification
                                                   service can handle the provided content.
 
+configs.<name>.mailrise.html_conversion string    The HTML conversion string is used to convert HTML messages to text format. The original 
+												  formatting is kept the best it can be when converting.
+
+                                                  Defaults to ``None``.
+configs.<name>.mailrise.send_message_encrypted bool     The HTML conversion string is used to convert HTML messages to text format. The original 
+													    formatting is kept the best it can be when converting.
+                                                           
+														Defaults to ``None``.
+														  
                                                   If not specified here, the data type is inferred from the body part of the
                                                   email message. So if you have your body template set to anything but the
                                                   default value of ``$body``, you might want to set a data type here.
@@ -146,6 +163,9 @@ listen.host                            string     Specifies the network address 
 listen.port                            number     Specifies the network port to listen on.
 
                                                   Defaults to 8025.
+listen.decryptor_companion_port        number     Specifies the decryptor companion port to listen on.
+
+                                                  Defaults to 5000.
 tls.mode                               string     Selects the operating mode for TLS encryption. Must be ``off``,
                                                   ``onconnect``, ``starttls``, or ``starttlsrequire``.
 
