@@ -13,6 +13,7 @@ __pycache__/*
 .*.swp
 */.ipynb_checkpoints/*
 .DS_Store
+mailrise.yaml
 
 # Project files
 .ropeproject
@@ -47,7 +48,10 @@ docs/_rst/*
 docs/_build/*
 cover/*
 MANIFEST
+.vscode/
+.vscode/settings.json
 
 # Per-project virtualenvs
+venv/
 .venv*/
 .conda*/

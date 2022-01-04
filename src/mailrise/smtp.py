@@ -13,13 +13,17 @@ from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import parseaddr
 from tempfile import NamedTemporaryFile
+import socket
 
-from mailrise.config import Key, MailriseConfig
+from mailrise.config import Key, MailriseConfig, MailriseEncryption
 from mailrise.util import parseaddrparts
 
 import apprise
 from aiosmtpd.smtp import Envelope, Session, SMTP
 from apprise.common import ContentLocation
+
+from ictoolkit.directors.html_director import HTMLConverter
+from ictoolkit.directors.encryption_director import encrypt_info
 
 # Mypy, for some reason, considers AttachBase a module, not a class.
 MYPY = False
@@ -97,6 +101,7 @@ class AppriseHandler(typ.NamedTuple):
         config: This server's Mailrise configuration.
     """
     config: MailriseConfig
+    encryption: MailriseEncryption
 
     async def handle_RCPT(self, server: SMTP, session: Session, envelope: Envelope,
                           address: str, rcpt_options: list[str]) -> str:
@@ -116,7 +121,14 @@ class AppriseHandler(typ.NamedTuple):
         parser = BytesParser(policy=email.policy.default)
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, EmailMessage)
-        notification = parsemessage(message)
+
+        notification = parsemessage(
+            message,
+            encryption=self.encryption,
+            html_conversion_option=self.config.senders[parsercpt(message.get('To', '[no To]')).key].html_conversion,
+            send_message_encrypted=self.config.senders[parsercpt(message.get('To', '[no To]')).key].send_message_encrypted,
+        )
+
         self.config.logger.info('Accepted email, subject: %s', notification.subject)
 
         rcpts = (parsercpt(addr) for addr in envelope.rcpt_tos)
@@ -190,23 +202,53 @@ class EmailNotification(typ.NamedTuple):
             raise AppriseNotifyFailure()
 
 
-def parsemessage(msg: EmailMessage) -> EmailNotification:
+def parsemessage(msg: EmailMessage, encryption: MailriseEncryption = None, **message_options) -> EmailNotification:
     """Parses an email message into an `EmailNotification`.
 
     Args:
         msg: The email message.
+        encryption (optional): The encryption details.\\
+        **message_options:
+        \t\\- html_conversion_option: The option to convert the HTML to a different format.\\
+        \t\\- send_message_encrypted: The option to send the message encrypted.
 
     Returns:
         The `EmailNotification` instance.
     """
     body_part = msg.get_body()
+
+    html_conversion_option = message_options.get('html_conversion_option')
+    send_message_encrypted = message_options.get('send_message_encrypted')
+
     body: str
     body_format: apprise.NotifyFormat
     if isinstance(body_part, EmailMessage):
         body = body_part.get_content().strip()
-        body_format = \
-            (apprise.NotifyFormat.HTML if body_part.get_content_subtype() == 'html'
-             else apprise.NotifyFormat.TEXT)
+        if 'text' == html_conversion_option:
+            parser = HTMLConverter()
+            parser.feed(body, html_conversion_option)
+            # Removes all html before the last "}". Some HTML can return additional style information with text output.
+            body = parser.output.split('}')[-1].strip()
+            body_format = apprise.NotifyFormat.TEXT
+        else:
+            body_format = \
+                (apprise.NotifyFormat.HTML
+                 if body_part.get_content_subtype() == 'html'
+                 else apprise.NotifyFormat.TEXT)
+
+        # Encryption Option for text and HTML
+        if send_message_encrypted is True:
+            body = encrypt_info(body, encryption.encryption_password, encryption.encryption_random_salt)
+            if encryption.enable_decryptor_companion is True:
+                if encryption.decryptor_companion_url:
+                    decryptor_url = f'{encryption.decryptor_companion_url}:{encryption.decryptor_companion_port}'
+                else:
+                    # Gets the hosts IP address for message output.
+                    host_ip = socket.gethostbyname(socket.gethostname())
+                    decryptor_url = f'http://{host_ip}:{encryption.decryptor_companion_port}'
+                body = 'Please use the code below to decrypt the message.\n\n\n' + str(body) + f'\n\n\nDecryption Site: {decryptor_url}'
+            else:
+                body = 'Please use the code below to decrypt the message.\n\n\n' + str(body)
     else:
         body = ''
         body_format = apprise.NotifyFormat.TEXT

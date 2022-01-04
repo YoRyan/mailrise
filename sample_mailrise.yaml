@@ -1,0 +1,30 @@
+configs:
+  software1@mysamplesite.com:
+    urls:
+      - gotify://gotify.mysamplesite.com/AdwdasSgdsS
+    mailrise:
+      title_template: "$subject ($from) [$type]"
+      html_conversion: "text"
+      send_message_encrypted: True
+  doors@mysamplesite.com:
+    urls:
+      - gotify://gotify.mysamplesite.com/BAddsdgasd
+    mailrise:
+      title_template: "$subject ($from) [$type]"
+    emaill@mysamplesite.com:
+    urls:
+      - mailto://<Fill In>
+    mailrise: 
+      title_template: "$subject ($from) [$type]"
+smtp: 
+  hostname: "smtp.mysamplesite.com"
+listen:
+  port: 25
+  decryptor_companion_port: 5001
+encryption:
+  encryption_password: "ChangePassword1"
+  # Create a random "salt" using this command "print("random16 Key:", os.random(16))"
+  encryption_random_salt: b'ChangeME'
+website: 
+  enable_decryptor_companion: True
+  decryptor_companion_url: "http://decrypt.mysamplesite.com"

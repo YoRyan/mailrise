@@ -93,11 +93,14 @@ class Sender(NamedTuple):
         body_template: The template string for notification body texts.
         body_format: The content type for notifications. If None, this will be
             auto-detected from the body parts of emails.
+        html_conversion: The option to convert html to a different format.
     """
     apprise: apprise.Apprise
     title_template: Template
     body_template: Template
     body_format: typ.Optional[apprise.NotifyFormat]
+    send_message_encrypted: typ.Optional[bool]
+    html_conversion: typ.Optional[str]
 
 
 class MailriseConfig(NamedTuple):
@@ -122,6 +125,24 @@ class MailriseConfig(NamedTuple):
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
     senders: dict[Key, Sender]
+
+
+class MailriseEncryption(NamedTuple):
+    """Encryption data for the Mailrise instance.
+
+    Args:
+        decryptor_companion_port: The decryptor port to listen on.
+        decryptor_companion_url: The decryptor url to listen on.
+        enable_decryptor_companion: Enables the decryptor companion website.
+        encryption_password: The encryption password.
+        encryption_random_salt: The random salt.
+        \t\\- Salt Creation: print("random16 Key:", os.random(16))
+    """
+    decryptor_companion_port: typ.Optional[int]
+    decryptor_companion_url: typ.Optional[str]
+    enable_decryptor_companion: typ.Optional[bool]
+    encryption_password: typ.Optional[str]
+    encryption_random_salt: typ.Optional[bytes]
 
 
 def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
@@ -175,6 +196,45 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     )
 
 
+def load_encryption(logger: Logger, f: io.TextIOWrapper) -> MailriseEncryption:
+    """Loads encryption data from a YAML file.
+
+    Args:
+        logger: The logger, which will be passed to the `MailriseEncryption` instance.
+        f: The file handle to load YAML from.
+
+    Returns:
+        The `MailriseEncryption` instance.
+
+    Raises:
+        ConfigFileError: The configuration file is invalid.
+    """
+
+    yml = yaml.safe_load(f)
+
+    if not isinstance(yml, dict):
+        raise ConfigFileError("root node not a mapping")
+
+    yml_listen = yml.get('listen', {})
+
+    yml_website = yml.get('website', {})
+    if not isinstance(yml_website, dict):
+        raise ConfigFileError("'website' not a mapping")
+
+    yml_encryption = yml.get('encryption', {})
+    if not isinstance(yml_encryption, dict):
+        raise ConfigFileError("'website' not a mapping")
+
+    logger.info('Loaded encryption')
+    return MailriseEncryption(
+        enable_decryptor_companion=yml_website.get('enable_decryptor_companion', None),
+        decryptor_companion_url=yml_website.get('decryptor_companion_url', None),
+        decryptor_companion_port=yml_listen.get('decryptor_companion_port', 5000),
+        encryption_password=yml_encryption.get('encryption_password', None),
+        encryption_random_salt=yml_encryption.get('encryption_random_salt', None),
+    )
+
+
 def _parsekey(s: str) -> Key:
     def err():
         return ConfigFileError(f"invalid config key '{s}'; should be a string or "
@@ -200,11 +260,19 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
     title_template = mr_config.get('title_template', '$subject ($from)')
     body_template = mr_config.get('body_template', '$body')
     body_format = mr_config.get('body_format', None)
+    html_conversion = mr_config.get('html_conversion', None)
+    send_message_encrypted = mr_config.get('send_message_encrypted', None)
+
     if not any(body_format == c for c in (None,
                                           apprise.NotifyFormat.TEXT,
                                           apprise.NotifyFormat.HTML,
                                           apprise.NotifyFormat.MARKDOWN)):
         raise ConfigFileError(f"invalid apprise notification format: {body_format}")
+
+    html_conversion = mr_config.get('html_conversion', None)
+    if not any(html_conversion == c for c in (None,
+                                              'text')):
+        raise ConfigFileError(f"invalid mailrise html conversion option: {html_conversion}")
 
     aconfig = apprise.AppriseConfig(asset=DEFAULT_ASSET)
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
@@ -214,5 +282,7 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
         apprise=apobj,
         title_template=Template(title_template),
         body_template=Template(body_template),
-        body_format=body_format
+        body_format=body_format,
+        html_conversion=html_conversion,
+        send_message_encrypted=send_message_encrypted,
     )

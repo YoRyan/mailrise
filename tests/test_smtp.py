@@ -1,8 +1,8 @@
 from email.message import EmailMessage
 from pathlib import Path
 
-from mailrise.config import Key
-from mailrise.smtp import RecipientError, parsemessage, parsercpt
+from src.mailrise.config import Key, MailriseEncryption
+from src.mailrise.smtp import RecipientError, parsemessage, parsercpt
 
 import apprise
 import pytest
@@ -44,9 +44,29 @@ def test_parsemessage() -> None:
     msg.set_content('Hello, World!')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = parsemessage(msg)
+
+    encryption = MailriseEncryption(
+        enable_decryptor_companion=True,
+        decryptor_companion_url="http://mysamplesite",
+        decryptor_companion_port=5001,
+        encryption_password="ChangePassword1",
+        encryption_random_salt=b'ChangeME'
+    )
+
+    notification = parsemessage(
+        msg,
+        encryption,
+        html_conversion="text",
+        send_message_encrypted=True
+    )
+
     assert notification.subject == 'Test Message'
-    assert notification.body == 'Hello, World!'
+
+    if (
+        'Please use the code below to decrypt the message' not in notification.body
+        or 'b\'' not in notification.body
+    ):
+        raise ValueError('The message did not encrypt')
     assert notification.body_format == apprise.NotifyFormat.TEXT
 
     msg = EmailMessage()
