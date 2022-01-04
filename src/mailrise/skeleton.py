@@ -155,12 +155,23 @@ def main(args: list[str]) -> None:
                          'there are no Apprise configs')
         return
 
+    if (
+        encryption.enable_decryptor_companion is True
+        and (not encryption.encryption_password
+        or not encryption.encryption_random_salt)
+    ):
+        _logger.critical('Error loading configuration file: '
+                            'Decryptor companion requires a set encryption '
+                            'password and random salt.')
+        return
+
     if encryption.enable_decryptor_companion is True:
         try:
             setup_decryptor_companion(encryption.decryptor_companion_port, encryption.encryption_password, encryption.encryption_random_salt)
         except Exception as e:
             _logger.critical('Error setting up the decryptor companion:\n%s', e)
             return
+        
     tls: typ.Optional[ssl.SSLContext]
     tls_mode = config.tls_mode
     if tls_mode != TLSMode.OFF:

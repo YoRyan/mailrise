@@ -15,7 +15,7 @@ from email.utils import parseaddr
 from tempfile import NamedTemporaryFile
 import socket
 
-from mailrise.config import Key, MailriseConfig, MailriseEncryption
+from mailrise.config import ConfigFileError, Key, MailriseConfig, MailriseEncryption
 from mailrise.util import parseaddrparts
 
 import apprise
@@ -235,6 +235,13 @@ def parsemessage(msg: EmailMessage, encryption: MailriseEncryption = None, **mes
                 (apprise.NotifyFormat.HTML
                  if body_part.get_content_subtype() == 'html'
                  else apprise.NotifyFormat.TEXT)
+
+        if (
+            send_message_encrypted is True
+            and (not encryption.encryption_password
+            or not encryption.encryption_random_salt)
+        ):
+            raise ConfigFileError('Message encryption requires a set encryption password and random salt.')
 
         # Encryption Option for text and HTML
         if send_message_encrypted is True:
