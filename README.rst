@@ -27,8 +27,8 @@ conventional SMTP server, it's more secure, too—no more replicating your Gmail
 password to each of your Linux boxes!
 
 Mailrise offers the ability to encrypt any received SMTP message using the cryptography 
-library. No matter what receiving service from Apprise notification service, any SMTP 
-message can encrypt. Mailrise offers a decryption companion to allow message decryption. 
+library. No matter what receiving notification service from Apprise, any SMTP message
+can encrypt. Mailrise offers a decryption companion to allow message decryption. 
 The decrypt.html is editable for a different look.
 
 A sample_mailrise.yaml file is in the root directory. This file can be renamed to 
