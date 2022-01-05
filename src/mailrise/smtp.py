@@ -21,6 +21,9 @@ import apprise
 from aiosmtpd.smtp import Envelope, Session, SMTP
 from apprise.common import ContentLocation
 
+from html.parser import HTMLParser
+from os import linesep
+
 # Mypy, for some reason, considers AttachBase a module, not a class.
 MYPY = False
 if MYPY:
@@ -47,6 +50,18 @@ class AppriseNotifyFailure(Exception):
     Note: Apprise does not provide any information about the reason for the
     failure."""
     pass
+
+
+class BodyConversionError(Exception):
+    """Exception raised for a failed body conversion.
+
+    Attributes:
+        message: The reason the conversion failed.
+    """
+    message: str
+
+    def __init__(self, message: str) -> None:
+        self.message = message
 
 
 class Recipient(typ.NamedTuple):
@@ -116,7 +131,10 @@ class AppriseHandler(typ.NamedTuple):
         parser = BytesParser(policy=email.policy.default)
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, EmailMessage)
-        notification = parsemessage(message)
+        notification = parsemessage(
+            message,
+            html_conversion=self.config.senders[parsercpt(message.get('To', '[no To]')).key].html_conversion,
+        )
         self.config.logger.info('Accepted email, subject: %s', notification.subject)
 
         rcpts = (parsercpt(addr) for addr in envelope.rcpt_tos)
@@ -137,6 +155,26 @@ class Attachment(typ.NamedTuple):
     """
     data: bytes
     filename: str
+
+
+class ConvertingBody(typ.NamedTuple):
+    """Represents a converting body message.
+
+    Attributes:
+        body: The original body message.
+        html_conversion: The conversion option.
+    """
+    body: str
+    html_conversion: str
+
+
+class ConvertedBody(typ.NamedTuple):
+    """Represents a converted body message.
+
+    Attributes:
+        converted_body: The converted body message from the selected conversion option.
+    """
+    converted_body: str
 
 
 class EmailNotification(typ.NamedTuple):
@@ -190,7 +228,7 @@ class EmailNotification(typ.NamedTuple):
             raise AppriseNotifyFailure()
 
 
-def parsemessage(msg: EmailMessage) -> EmailNotification:
+def parsemessage(msg: EmailMessage, html_conversion: str) -> EmailNotification:
     """Parses an email message into an `EmailNotification`.
 
     Args:
@@ -204,9 +242,19 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     body_format: apprise.NotifyFormat
     if isinstance(body_part, EmailMessage):
         body = body_part.get_content().strip()
-        body_format = \
-            (apprise.NotifyFormat.HTML if body_part.get_content_subtype() == 'html'
-             else apprise.NotifyFormat.TEXT)
+        if html_conversion:
+            parser = HTMLConverter()
+            converting_body = ConvertingBody(
+                body,
+                html_conversion
+            )
+            body = parser.feed(converting_body)
+            body_format = apprise.NotifyFormat.TEXT
+        else:
+            body_format = \
+                (apprise.NotifyFormat.HTML
+                 if body_part.get_content_subtype() == 'html'
+                 else apprise.NotifyFormat.TEXT)
     else:
         body = ''
         body_format = apprise.NotifyFormat.TEXT
@@ -223,6 +271,40 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
 
 def _parseattachment(part: EmailMessage) -> Attachment:
     return Attachment(data=part.get_content(), filename=part.get_filename(''))
+
+
+class HTMLConverter(HTMLParser):
+    """HTML email body is converted to the selected format."""
+    def __init__(self) -> None:
+        HTMLParser.__init__(self)
+
+    def feed(self, body: ConvertingBody) -> ConvertedBody:
+        self.body_formatting = ""
+        # Supports text conversion, but other conversions such as PDF, image, etc can be added in the future.
+        if body.html_conversion == 'text':
+            super(HTMLConverter, self).feed(body.body)
+
+            # Removes all html before the last "}". Some HTML can return additional style information with text output.
+            converted_body = str(self.body_formatting).split('}')[-1].strip()
+
+            return converted_body
+        else:
+            raise BodyConversionError("invalid conversion option")
+
+    def handle_data(self, data: str) -> None:
+        self.body_formatting += data.strip()
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        if tag == 'li':
+            self.body_formatting += linesep + '- '
+        elif tag == 'blockquote':
+            self.body_formatting += linesep + linesep + '\t'
+        elif tag in ['br', 'p', 'h1', 'h2', 'h3', 'h4', 'tr', 'th']:
+            self.body_formatting += linesep + '\n'
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == 'blockquote':
+            self.body_formatting += linesep + linesep
 
 
 class AttachMailrise(AttachBase):

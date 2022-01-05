@@ -106,58 +106,60 @@ encapsulates the daemon's entire configuration. The root node of this file shoul
 be a dictionary. Mailrise accepts the following keys (periods denote
 sub-dictionaries):
 
-====================================== ========== ==========================================================================
-Key                                    Type       Value
-====================================== ========== ==========================================================================
-configs.<name>                         dictionary ``<name>`` denotes the name of the configuration. It must *not* contain a
-                                                  period. Senders select this configuration by addressing their emails to
-                                                  ``<name>@mailrise.xyz``.
+=============================================== ========== ==========================================================================
+Key                                             Type       Value
+=============================================== ========== ==========================================================================
+configs.<name>                                  dictionary ``<name>`` denotes the name of the configuration. It must *not* contain a
+                                                           period. Senders select this configuration by addressing their emails to
+                                                           ``<name>@mailrise.xyz``.
 
-                                                  It is also possible to use a full email address, such as
-                                                  ``mail@example.com``, as a name, in which case senders must use the entire
-                                                  address as their recipient address to select this configuration.
+                                                           It is also possible to use a full email address, such as
+                                                           ``mail@example.com``, as a name, in which case senders must use the entire
+                                                           address as their recipient address to select this configuration.
 
-                                                  The dictionary value is the Apprise
-                                                  `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
-                                                  itself, exactly as it would be specified in a standalone file for Apprise.
+                                                           The dictionary value is the Apprise
+                                                           `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
+                                                           itself, exactly as it would be specified in a standalone file for Apprise.
 
-                                                  In addition to the Apprise configuration, some Mailrise-exclusive options
-                                                  can be specified under this key. See the ``mailrise`` options below.
-configs.<name>.mailrise.title_template string     The template string used to create notification titles. See "Template
-                                                  strings" below.
+                                                           In addition to the Apprise configuration, some Mailrise-exclusive options
+                                                           can be specified under this key. See the ``mailrise`` options below.
+configs.<name>.mailrise.title_template          string     The template string used to create notification titles. See "Template
+                                                           strings" below.
 
-                                                  Defaults to ``$subject ($from)``.
-configs.<name>.mailrise.body_template  string     The template string used to create notification body texts. See "Template
-                                                  strings" below.
+                                                           Defaults to ``$subject ($from)``.
+configs.<name>.mailrise.body_template           string     The template string used to create notification body texts. See "Template
+                                                           strings" below.
 
-                                                  Defaults to ``$body``.
-configs.<name>.mailrise.body_format    string     Sets the data type for notification body texts. Must be ``text``,
-                                                  ``html``, or ``markdown``. Apprise
-                                                  `uses <https://github.com/caronc/apprise/wiki/Development_API#notify--send-notifications>`_
-                                                  this information to determine whether or not the upstream notification
-                                                  service can handle the provided content.
+                                                           Defaults to ``$body``.
+configs.<name>.mailrise.body_format             string     Sets the data type for notification body texts. Must be ``text``,
+                                                           ``html``, or ``markdown``. Apprise
+                                                           `uses <https://github.com/caronc/apprise/wiki/Development_API#notify--send-notifications>`_
+                                                           this information to determine whether or not the upstream notification
+                                                           service can handle the provided content.
+                                                           
+                                                           If not specified here, the data type is inferred from the body part of the
+                                                           email message. So if you have your body template set to anything but the
+                                                           default value of ``$body``, you might want to set a data type here.
+configs.<name>.mailrise.html_conversion         string     The HTML conversion string is used to convert HTML messages to text format. The original 
+                                                           formatting is kept the best it can be when converting.
 
-                                                  If not specified here, the data type is inferred from the body part of the
-                                                  email message. So if you have your body template set to anything but the
-                                                  default value of ``$body``, you might want to set a data type here.
-listen.host                            string     Specifies the network address to listen on.
+                                                           Defaults to ``None``.
+listen.host                                     string     Specifies the network address to listen on.
 
-                                                  Defaults to all interfaces.
-listen.port                            number     Specifies the network port to listen on.
+                                                           Defaults to all interfaces.
+listen.port                                     number     Specifies the network port to listen on.
 
-                                                  Defaults to 8025.
-tls.mode                               string     Selects the operating mode for TLS encryption. Must be ``off``,
-                                                  ``onconnect``, ``starttls``, or ``starttlsrequire``.
+                                                           Defaults to 5000.
+tls.mode                                        string     Selects the operating mode for TLS encryption. Must be ``off``,
+                                                           ``onconnect``, ``starttls``, or ``starttlsrequire``.
 
-                                                  Defaults to off.
-tls.certfile                           string     If TLS is enabled, specifies the path to the certificate chain file. This
-                                                  file must be unencrypted and in PEM format.
-tls.keyfile                            string     If TLS is enabled, specifies the path to the key file. This file must be
-                                                  unencrypted and in PEM format.
-smtp.hostname                          string     Specifies the hostname used when responding to the EHLO command.
-
-                                                  Defaults to the system FQDN.
-====================================== ========== ==========================================================================
+                                                           Defaults to off.
+tls.certfile                                    string     If TLS is enabled, specifies the path to the certificate chain file. This
+                                                           file must be unencrypted and in PEM format.
+tls.keyfile                                     string     If TLS is enabled, specifies the path to the key file. This file must be
+                                                           unencrypted and in PEM format.
+smtp.hostname                                   string     Specifies the hostname used when responding to the EHLO command.
+=============================================== ========== ==========================================================================
 
 .. _template-strings:
 

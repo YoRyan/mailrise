@@ -93,11 +93,13 @@ class Sender(NamedTuple):
         body_template: The template string for notification body texts.
         body_format: The content type for notifications. If None, this will be
             auto-detected from the body parts of emails.
+        html_conversion: The option to convert html to a different format.
     """
     apprise: apprise.Apprise
     title_template: Template
     body_template: Template
     body_format: typ.Optional[apprise.NotifyFormat]
+    html_conversion: typ.Optional[str]
 
 
 class MailriseConfig(NamedTuple):
@@ -200,11 +202,15 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
     title_template = mr_config.get('title_template', '$subject ($from)')
     body_template = mr_config.get('body_template', '$body')
     body_format = mr_config.get('body_format', None)
+    html_conversion = mr_config.get('html_conversion', None)
     if not any(body_format == c for c in (None,
                                           apprise.NotifyFormat.TEXT,
                                           apprise.NotifyFormat.HTML,
                                           apprise.NotifyFormat.MARKDOWN)):
         raise ConfigFileError(f"invalid apprise notification format: {body_format}")
+    if not any(html_conversion == c for c in (None,
+                                              'text')):
+        raise ConfigFileError(f"invalid mailrise html conversion option: {html_conversion}")
 
     aconfig = apprise.AppriseConfig(asset=DEFAULT_ASSET)
     aconfig.add_config(yaml.safe_dump(config), format='yaml')
@@ -214,5 +220,6 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
         apprise=apobj,
         title_template=Template(title_template),
         body_template=Template(body_template),
-        body_format=body_format
+        body_format=body_format,
+        html_conversion=html_conversion,
     )

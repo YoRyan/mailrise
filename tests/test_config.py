@@ -82,6 +82,7 @@ def test_mailrise_options() -> None:
             mailrise:
               title_template: ""
               body_format: "text"
+              html_conversion: "text"
     """)
     mrise = load_config(_logger, f)
     assert len(mrise.senders) == 1
@@ -91,7 +92,8 @@ def test_mailrise_options() -> None:
     sender = mrise.senders[key]
     assert sender.title_template.template == ''
     assert sender.body_format == NotifyFormat.TEXT
-
+    assert sender.html_conversion == NotifyFormat.TEXT
+    
     with pytest.raises(ConfigFileError):
         f = StringIO("""
             configs:
