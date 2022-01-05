@@ -106,10 +106,10 @@ def setup_decryptor_companion(decryptor_companion_port: int, encryption_password
     # Checks if the launch_decryptor_website companion program program is not running for initial startup.
     if 'companion_decryptor_thread' not in str(threading.enumerate()):
         _logger.info('Starting the launch_decryptor_website companion program')
-        # Gets the main program root directory.
-        main_script_path = Path.cwd()
+        # Gets the main program root directory 3 levels up.
+        main_root_directory = (Path(__file__) / ".." / ".."/"..").resolve()
         # Creates the decryptor template path.
-        decryptor_template_path = os.path.abspath(f'{main_script_path}/decrypt_templates')
+        decryptor_template_path = os.path.abspath(f'{main_root_directory}/decrypt_templates')
         # This calls the start_function_thread function and passes the companion launch_decryptor_website function and arguments to the start_function_thread.
         # You have to use functools for this to work correctly. Adding the function without functools will cause the function to start before being passed to the start_function_thread.
         start_function_thread(partial(launch_decryptor_website, encryption_password, encryption_random_salt, decryptor_template_path, decryptor_companion_port), 'companion_decryptor_thread', False)
