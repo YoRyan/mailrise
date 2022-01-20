@@ -14,12 +14,12 @@ from email.parser import BytesParser
 from email.utils import parseaddr
 from tempfile import NamedTemporaryFile
 
-from mailrise.config import Key, MailriseConfig
-from mailrise.util import parseaddrparts
-
 import apprise
 from aiosmtpd.smtp import Envelope, Session, SMTP
 from apprise.common import ContentLocation
+
+from mailrise.config import Key, MailriseConfig
+from mailrise.util import parseaddrparts
 
 # Mypy, for some reason, considers AttachBase a module, not a class.
 MYPY = False
@@ -38,6 +38,7 @@ class RecipientError(Exception):
     message: str
 
     def __init__(self, message: str) -> None:
+        super().__init__(self)
         self.message = message
 
 
@@ -46,7 +47,6 @@ class AppriseNotifyFailure(Exception):
 
     Note: Apprise does not provide any information about the reason for the
     failure."""
-    pass
 
 
 class Recipient(typ.NamedTuple):
@@ -69,10 +69,10 @@ def parsercpt(addr: str) -> Recipient:
     Returns:
         The `Recipient` instance.
     """
-    _, email = parseaddr(addr)
-    user, domain = parseaddrparts(email)
+    _, rcpt = parseaddr(addr)
+    user, domain = parseaddrparts(rcpt)
     if not user or not domain:
-        raise RecipientError(f"'{email}' is not a valid mailrise recipient")
+        raise RecipientError(f"'{rcpt}' is not a valid mailrise recipient")
     match = re.search(
         r'(.*)\.(info|success|warning|failure)$', user, re.IGNORECASE)
     ntype = apprise.NotifyType.INFO
@@ -98,18 +98,20 @@ class AppriseHandler(typ.NamedTuple):
     """
     config: MailriseConfig
 
+    # pylint: disable=invalid-name,unused-argument
     async def handle_RCPT(self, server: SMTP, session: Session, envelope: Envelope,
                           address: str, rcpt_options: list[str]) -> str:
         try:
             rcpt = parsercpt(address)
-        except RecipientError as e:
-            return f'550 {e.message}'
+        except RecipientError as rcpt_err:
+            return f'550 {rcpt_err.message}'
         if rcpt.key not in self.config.senders:
             return '551 recipient does not exist in configuration file'
         self.config.logger.info('Accepted recipient: %s', address)
         envelope.rcpt_tos.append(address)
         return '250 OK'
 
+    # pylint: disable=invalid-name,unused-argument
     async def handle_DATA(self, server: SMTP, session: Session, envelope: Envelope) \
             -> str:
         assert isinstance(envelope.content, bytes)
@@ -175,7 +177,7 @@ class EmailNotification(typ.NamedTuple):
             'type': rcpt.notify_type
         }
         attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
-        res = await sender.apprise.async_notify(
+        res = await sender.notifier.async_notify(
             title=sender.title_template.safe_substitute(mapping),
             body=sender.body_template.safe_substitute(mapping),
             # Use the configuration body format if specified.
@@ -267,9 +269,10 @@ class AttachMailrise(AttachBase):
             self._mrfile = None
         super().invalidate()
 
-    def url(self, **kwargs: typ.Any) -> str:
+    def url(self, *args: typ.Any, **kwargs: typ.Any) -> str:
         return f'mailrise://{hex(id(self))}'
 
     @staticmethod
-    def parse_url(url: str, verify_host: bool = True) -> typ.Dict[str, typ.Any]:
+    def parse_url(url: str, verify_host: bool = True,
+                  mimetype_db: typ.Any = None) -> typ.Dict[str, typ.Any]:
         return {}

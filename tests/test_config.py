@@ -44,8 +44,8 @@ def test_load() -> None:
     assert key in mrise.senders
 
     sender = mrise.senders[key]
-    assert len(sender.apprise) == 1
-    assert sender.apprise[0].url().startswith('json://localhost/')
+    assert len(sender.notifier) == 1
+    assert sender.notifier[0].url().startswith('json://localhost/')
 
 
 def test_multi_load() -> None:
@@ -67,8 +67,8 @@ def test_multi_load() -> None:
         assert key in mrise.senders
 
         sender = mrise.senders[key]
-        assert len(sender.apprise) == 1
-        assert sender.apprise[0].url().startswith('json://localhost/')
+        assert len(sender.notifier) == 1
+        assert sender.notifier[0].url().startswith('json://localhost/')
 
 
 def test_mailrise_options() -> None:

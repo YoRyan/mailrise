@@ -54,6 +54,7 @@ class ConfigFileError(Exception):
     message: str
 
     def __init__(self, message: str) -> None:
+        super().__init__(self)
         self.message = message
 
 
@@ -88,13 +89,13 @@ class Sender(NamedTuple):
     """A configured target for Apprise notifications.
 
     Attributes:
-        apprise: The Apprise instance.
+        notifier: The Apprise instance.
         title_template: The template string for notification title texts.
         body_template: The template string for notification body texts.
         body_format: The content type for notifications. If None, this will be
             auto-detected from the body parts of emails.
     """
-    apprise: apprise.Apprise
+    notifier: apprise.Apprise
     title_template: Template
     body_template: Template
     body_format: typ.Optional[apprise.NotifyFormat]
@@ -146,8 +147,8 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     yml_tls = yml.get('tls', {})
     try:
         tls_mode = TLSMode[yml_tls.get('mode', 'off').upper()]
-    except KeyError:
-        raise ConfigFileError('invalid TLS operating mode')
+    except KeyError as key_err:
+        raise ConfigFileError('invalid TLS operating mode') from key_err
     tls_certfile = yml_tls.get('certfile', None)
     tls_keyfile = yml_tls.get('keyfile', None)
     if tls_mode != TLSMode.OFF and not (tls_certfile and tls_keyfile):
@@ -184,7 +185,7 @@ def _parsekey(s: str) -> Key:
         if not user or not domain or '.' in user:
             raise err()
         return Key(user=user, domain=domain.lower())
-    elif '.' in s:
+    if '.' in s:
         raise err()
     else:
         return Key(user=s)
@@ -211,7 +212,7 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
     apobj = apprise.Apprise(aconfig)
 
     return Sender(
-        apprise=apobj,
+        notifier=apobj,
         title_template=Template(title_template),
         body_template=Template(body_template),
         body_format=body_format
