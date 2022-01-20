@@ -148,7 +148,7 @@ def main(args: list[str]) -> None:
     except Exception as e:
         _logger.critical('Failed to start aiosmtpd controller: %s', e)
         controller.stop()
-        return
+        raise
 
     eloop = new_event_loop()
     try:
