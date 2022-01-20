@@ -9,7 +9,7 @@ import logging
 import ssl
 import sys
 import typing as typ
-from asyncio import get_event_loop
+from asyncio.events import new_event_loop
 from functools import partial
 
 from mailrise import __version__
@@ -150,7 +150,7 @@ def main(args: list[str]) -> None:
         controller.stop()
         return
 
-    eloop = get_event_loop()
+    eloop = new_event_loop()
     try:
         eloop.run_forever()
     finally:
