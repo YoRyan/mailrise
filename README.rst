@@ -9,6 +9,16 @@ mailrise
 
 An SMTP gateway for Apprise notifications.
 
+.. |docker| image:: https://badgen.net/docker/pulls/yoryan/mailrise
+  :alt: Docker pulls
+
+.. |commit| image:: https://badgen.net/github/last-commit/yoryan/mailrise/main
+  :alt: Last commit
+
+.. |checks| image:: https://badgen.net/github/checks/yoryan/mailrise
+  :alt: Checks status
+
+|docker| |commit| |checks|
 
 Description
 ===========
