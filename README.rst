@@ -109,8 +109,9 @@ To build a wheel, use::
 
     tox -e build
 
-If you are using Visual Studio Code, a development container is included with all
-the Python tooling necessary for working with Mailrise.
+If you are using Visual Studio Code, a
+`development container <https://code.visualstudio.com/docs/remote/containers>`_
+is included with all the Python tooling necessary for working with Mailrise.
 
 Configuration
 =============
