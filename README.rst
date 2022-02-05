@@ -56,9 +56,11 @@ recipient address::
     pushover@mailrise.xyz
 
 It is also possible to specify one of the four Apprise
-`notification types <https://github.com/caronc/apprise/wiki/Development_API#message-types-and-themes>`_::
+`notification types <https://github.com/caronc/apprise/wiki/Development_API#message-types-and-themes>`_,
+which, if the service you selected supports it, will change the color of the
+icon of the resulting notification::
 
-    pushover.failure@mailrise.xyz
+    discord.failure@mailrise.xyz
 
 Email attachments will also pass through to Apprise if the addressed
 notification service(s) support attachments.
