@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 1.2.1
+=============
+
+:Date: February 5, 2022
+
+- Upgrade to Apprise v0.9.7, which, notably, now converts HTML markup to plain text for notifications
+
 Version 1.2.0
 =============
 
