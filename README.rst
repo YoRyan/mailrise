@@ -194,12 +194,3 @@ config     The name of the selected Apprise configuration, unless it uses a cust
 type       The class of Apprise notification. This is "info", "success", "warning", or
            "failure".
 ========== ====================================================================================
-
-
-.. _pyscaffold-notes:
-
-Note
-====
-
-This project has been set up using PyScaffold 4.0.2. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
