@@ -82,7 +82,8 @@ must bind mount a configuration file to ``/etc/mailrise.conf``.
 From PyPI
 ---------
 
-You can find Mailrise `on PyPI <https://pypi.org/project/mailrise/>`_.
+You can find Mailrise `on PyPI <https://pypi.org/project/mailrise/>`_. The
+minimum Python version is 3.8+.
 
 Once installed, you should write a configuration file and then configure Mailrise
 to run as a service. Here is the suggested systemd unit file::
@@ -107,6 +108,9 @@ editable mode for development or debugging purposes, use::
 To build a wheel, use::
 
     tox -e build
+
+If you are using Visual Studio Code, a development container is included with all
+the Python tooling necessary for working with Mailrise.
 
 Configuration
 =============
