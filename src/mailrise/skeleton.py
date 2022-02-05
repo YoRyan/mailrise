@@ -12,11 +12,11 @@ import typing as typ
 from asyncio.events import new_event_loop
 from functools import partial
 
+from aiosmtpd.controller import Controller
+
 from mailrise import __version__
 from mailrise.config import ConfigFileError, TLSMode, load_config
 from mailrise.smtp import AppriseHandler
-
-from aiosmtpd.controller import Controller
 
 __author__ = "Ryan Young"
 __copyright__ = "Ryan Young"
@@ -53,7 +53,7 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--version",
         action="version",
-        version="mailrise {ver}".format(ver=__version__),
+        version=f"mailrise {__version__}"
     )
     parser.add_argument(
         dest="config",
@@ -105,8 +105,8 @@ def main(args: list[str]) -> None:
 
     try:
         config = load_config(_logger, pargs.config)
-    except ConfigFileError as e:
-        _logger.critical('Error loading configuration file: %s', e.message)
+    except ConfigFileError as err:
+        _logger.critical('Error loading configuration file: %s', err.message)
         return
     if len(config.senders) < 1:
         _logger.critical('Error loading configuration file: '
@@ -121,11 +121,9 @@ def main(args: list[str]) -> None:
         tls = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         tls.load_cert_chain(config.tls_certfile, keyfile=config.tls_keyfile)
         _logger.info('TLS enabled and successfully initialized')
-    tls_onconnect = \
-        (tls if tls_mode == TLSMode.ONCONNECT else None)
+    tls_onconnect = tls if tls_mode == TLSMode.ONCONNECT else None
     tls_starttls = \
-        (tls if tls_mode == TLSMode.STARTTLS or tls_mode == TLSMode.STARTTLSREQUIRE
-         else None)
+        tls if tls_mode in (TLSMode.STARTTLS, TLSMode.STARTTLSREQUIRE) else None
 
     # TODO: Use UnthreadedController (with `loop`) when that becomes available
     # in stable aiosmtpd.
@@ -145,8 +143,8 @@ def main(args: list[str]) -> None:
                   if tls_onconnect is not None else makecon())
     try:
         controller.start()
-    except Exception as e:
-        _logger.critical('Failed to start aiosmtpd controller: %s', e)
+    except Exception as err:
+        _logger.critical('Failed to start aiosmtpd controller: %s', err)
         controller.stop()
         raise
 

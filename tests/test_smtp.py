@@ -1,11 +1,15 @@
+"""
+Tests for the SMTP server functionality.
+"""
+
 from email.message import EmailMessage
 from pathlib import Path
 
-from mailrise.config import Key
-from mailrise.smtp import RecipientError, parsemessage, parsercpt
-
 import apprise
 import pytest
+
+from mailrise.config import Key
+from mailrise.smtp import RecipientError, parsemessage, parsercpt
 
 
 def test_parsercpt() -> None:
@@ -62,8 +66,8 @@ def test_parsemessage() -> None:
 def test_parseattachments() -> None:
     """Tests for email message parsing with attachments."""
     img_name = 'bridge.jpg'
-    with open(Path(__file__).parent/img_name, 'rb') as fp:
-        img_data = fp.read()
+    with open(Path(__file__).parent/img_name, 'rb') as file:
+        img_data = file.read()
 
     msg = EmailMessage()
     msg.set_content('Hello, World!')

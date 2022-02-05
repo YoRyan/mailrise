@@ -125,12 +125,12 @@ class MailriseConfig(NamedTuple):
     senders: dict[Key, Sender]
 
 
-def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
+def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     """Loads configuration data from a YAML file.
 
     Args:
         logger: The logger, which will be passed to the `MailriseConfig` instance.
-        f: The file handle to load YAML from.
+        file: The file handle to load YAML from.
 
     Returns:
         The `MailriseConfig` instance.
@@ -138,7 +138,7 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     Raises:
         ConfigFileError: The configuration file is invalid.
     """
-    yml = yaml.safe_load(f)
+    yml = yaml.safe_load(file)
     if not isinstance(yml, dict):
         raise ConfigFileError("root node not a mapping")
 
@@ -176,19 +176,19 @@ def load_config(logger: Logger, f: io.TextIOWrapper) -> MailriseConfig:
     )
 
 
-def _parsekey(s: str) -> Key:
+def _parsekey(key: str) -> Key:
     def err():
-        return ConfigFileError(f"invalid config key '{s}'; should be a string or "
+        return ConfigFileError(f"invalid config key '{key}'; should be a string or "
                                "an email address without periods in the username")
-    if '@' in s:
-        user, domain = parseaddrparts(s)
+    if '@' in key:
+        user, domain = parseaddrparts(key)
         if not user or not domain or '.' in user:
             raise err()
         return Key(user=user, domain=domain.lower())
-    if '.' in s:
+    if '.' in key:
         raise err()
-    else:
-        return Key(user=s)
+
+    return Key(user=key)
 
 
 def _load_sender(config: dict[str, typ.Any]) -> Sender:

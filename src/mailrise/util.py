@@ -11,8 +11,7 @@ def parseaddrparts(email: str) -> Tuple[str, str]:
     match = re.search(r'(?:"([^"@]*)"|([^@]*))@([^@]*)$', email)
     if match is None:
         return '', ''
-    else:
-        quoted = match.group(1) is not None
-        user = match.group(1) if quoted else match.group(2)
-        domain = match.group(3)
-        return user, domain
+    quoted = match.group(1) is not None
+    user = match.group(1) if quoted else match.group(2)
+    domain = match.group(3)
+    return user, domain

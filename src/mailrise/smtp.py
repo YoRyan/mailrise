@@ -23,6 +23,7 @@ from mailrise.util import parseaddrparts
 
 # Mypy, for some reason, considers AttachBase a module, not a class.
 MYPY = False
+# pylint: disable=ungrouped-imports
 if MYPY:
     from apprise.attachment.AttachBase import AttachBase
 else:
@@ -98,9 +99,10 @@ class AppriseHandler(typ.NamedTuple):
     """
     config: MailriseConfig
 
-    # pylint: disable=invalid-name,unused-argument
+    # pylint: disable=invalid-name,unused-argument,too-many-arguments
     async def handle_RCPT(self, server: SMTP, session: Session, envelope: Envelope,
                           address: str, rcpt_options: list[str]) -> str:
+        """Called during RCPT TO."""
         try:
             rcpt = parsercpt(address)
         except RecipientError as rcpt_err:
@@ -114,6 +116,8 @@ class AppriseHandler(typ.NamedTuple):
     # pylint: disable=invalid-name,unused-argument
     async def handle_DATA(self, server: SMTP, session: Session, envelope: Envelope) \
             -> str:
+        """Called during DATA after the entire message ('SMTP content' as described
+        in RFC 5321) has been received."""
         assert isinstance(envelope.content, bytes)
         parser = BytesParser(policy=email.policy.default)
         message = parser.parsebytes(envelope.content)
@@ -186,8 +190,8 @@ class EmailNotification(typ.NamedTuple):
             attach=apprise.AppriseAttachment(attachbase)
         )
         # NOTE: This should probably be called by Apprise itself, but it isn't?
-        for ab in attachbase:
-            ab.invalidate()
+        for base in attachbase:
+            base.invalidate()
         if not res:
             raise AppriseNotifyFailure()
 
@@ -249,9 +253,8 @@ class AttachMailrise(AttachBase):
     def download(self) -> bool:
         self.invalidate()
 
-        tfile = NamedTemporaryFile(delete=False)
-        tfile.write(self._mrattach.data)
-        tfile.close()
+        with NamedTemporaryFile(delete=False) as tfile:
+            tfile.write(self._mrattach.data)
         self._mrfile = tfile
         self.download_path = tfile.name
         self.detected_name = self._mrattach.filename
