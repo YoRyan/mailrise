@@ -2,7 +2,6 @@
 Mailrise is an SMTP gateway for Apprise notifications.
 """
 
-import sys
 from importlib.metadata import PackageNotFoundError, version  # pragma: no cover
 
 try:
