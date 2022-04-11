@@ -63,6 +63,32 @@ def test_parsemessage() -> None:
     assert notification.body_format == apprise.NotifyFormat.HTML
 
 
+def test_multipart() -> None:
+    """Tests for email message parsing with multipart components."""
+    img_name = 'bridge.jpg'
+    with open(Path(__file__).parent/img_name, 'rb') as file:
+        img_data = file.read()
+    msg = EmailMessage()
+    msg.add_related('Hello, World!')
+    msg.add_related(img_data, maintype='image', subtype='jpeg')
+    msg['From'] = ''
+    msg['Subject'] = 'Test Message'
+    notification = parsemessage(msg)
+    assert notification.subject == 'Test Message'
+    assert notification.body == 'Hello, World!'
+    assert notification.body_format == apprise.NotifyFormat.TEXT
+
+    msg = EmailMessage()
+    msg.add_alternative('Hello, World!', subtype='plain')
+    msg.add_alternative('<strong>Hello, World!</strong>', subtype='html')
+    msg['From'] = ''
+    msg['Subject'] = 'Test Message'
+    notification = parsemessage(msg)
+    assert notification.subject == 'Test Message'
+    assert notification.body == '<strong>Hello, World!</strong>'
+    assert notification.body_format == apprise.NotifyFormat.HTML
+
+
 def test_parseattachments() -> None:
     """Tests for email message parsing with attachments."""
     img_name = 'bridge.jpg'

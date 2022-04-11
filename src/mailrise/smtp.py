@@ -9,6 +9,7 @@ import email.policy
 import os
 import re
 import typing as typ
+from email import contentmanager
 from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import parseaddr
@@ -48,6 +49,19 @@ class AppriseNotifyFailure(Exception):
 
     Note: Apprise does not provide any information about the reason for the
     failure."""
+
+
+class UnreadableMultipart(Exception):
+    """Exception raised for multipart messages that can't be parsed.
+
+    Attributes:
+        message: The multipart email part.
+    """
+    message: EmailMessage
+
+    def __init__(self, message: EmailMessage) -> None:
+        super().__init__(self)
+        self.message = message
 
 
 class Recipient(typ.NamedTuple):
@@ -122,7 +136,13 @@ class AppriseHandler(typ.NamedTuple):
         parser = BytesParser(policy=email.policy.default)
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, EmailMessage)
-        notification = parsemessage(message)
+        try:
+            notification = parsemessage(message)
+        except UnreadableMultipart as mpe:
+            subparts = \
+                ' '.join(part.get_content_type() for part in mpe.message.iter_parts())
+            self.config.logger.error('Failed to parse %s message: [ %s ]',
+                                     mpe.message.get_content_type(), subparts)
         self.config.logger.info('Accepted email, subject: %s', notification.subject)
 
         rcpts = (parsercpt(addr) for addr in envelope.rcpt_tos)
@@ -205,26 +225,49 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     Returns:
         The `EmailNotification` instance.
     """
-    body_part = msg.get_body()
-    body: str
-    body_format: apprise.NotifyFormat
-    if isinstance(body_part, EmailMessage):
-        body = body_part.get_content().strip()
-        body_format = \
-            (apprise.NotifyFormat.HTML if body_part.get_content_subtype() == 'html'
-             else apprise.NotifyFormat.TEXT)
+    py_body_part = msg.get_body()
+    body: typ.Optional[tuple[str, apprise.NotifyFormat]]
+    if isinstance(py_body_part, EmailMessage):
+        body_part: EmailMessage
+        try:
+            py_body_part.get_content()
+        except KeyError:  # stdlib failed to read the content, which means multipart
+            body_part = _getmultiparttext(py_body_part)
+        else:
+            body_part = py_body_part
+        body_content = contentmanager.raw_data_manager.get_content(body_part)
+        is_html = body_part.get_content_subtype() == 'html'
+        body = (body_content.strip(),
+                apprise.NotifyFormat.HTML if is_html else apprise.NotifyFormat.TEXT)
     else:
-        body = ''
-        body_format = apprise.NotifyFormat.TEXT
+        body = None
     attachments = [_parseattachment(part) for part in msg.iter_attachments()
                    if isinstance(part, EmailMessage)]
     return EmailNotification(
         subject=msg.get('Subject', '[no subject]'),
         from_=msg.get('From', '[no sender]'),
-        body=body,
-        body_format=body_format,
+        # Apprise will fail if no body is supplied.
+        body=body[0] if body else '[no body]',
+        body_format=body[1] if body else apprise.NotifyFormat.TEXT,
         attachments=attachments
     )
+
+
+def _getmultiparttext(msg: EmailMessage) -> EmailMessage:
+    """Search for the textual body part of a multipart email."""
+    content_type = msg.get_content_type()
+    if content_type in ('multipart/related', 'multipart/alternative'):
+        parts = list(msg.iter_parts())
+        # Look for these types of parts in descending order.
+        for parttype in ('multipart/alternative', 'multipart/related',
+                         'text/html', 'text/plain'):
+            found = \
+                next((p for p in parts if isinstance(p, EmailMessage)
+                     and p.get_content_type() == parttype), None)
+            if found is not None:
+                return _getmultiparttext(found)
+        raise UnreadableMultipart(msg)
+    return msg
 
 
 def _parseattachment(part: EmailMessage) -> Attachment:
