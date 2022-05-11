@@ -55,7 +55,8 @@ recipient address::
 
     pushover@mailrise.xyz
 
-It is also possible to specify one of the four Apprise
+By appending ``.<type>`` to the username component of the address, it is also
+possible to specify one of the four Apprise
 `notification types <https://github.com/caronc/apprise/wiki/Development_API#message-types-and-themes>`_,
 which, if the service you selected supports it, will change the color of the
 icon of the resulting notification::
@@ -126,13 +127,16 @@ sub-dictionaries):
 ====================================== ========== ==========================================================================
 Key                                    Type       Value
 ====================================== ========== ==========================================================================
-configs.<name>                         dictionary ``<name>`` denotes the name of the configuration. It must *not* contain a
-                                                  period. Senders select this configuration by addressing their emails to
-                                                  ``<name>@mailrise.xyz``.
+configs.<name>                         dictionary ``<name>`` denotes the email address associated with the configuration.
+                                                  Senders should address their emails to this address. ``<name>`` can be a
+                                                  full email address, such as ``notify@mydomain.com``, or it can be a
+                                                  username only, such as ``notify``, in which case the default
+                                                  ``mailrise.xyz`` domain will be added (resulting in the full email address
+                                                  ``notify@mailrise.xyz``).
 
-                                                  It is also possible to use a full email address, such as
-                                                  ``mail@example.com``, as a name, in which case senders must use the entire
-                                                  address as their recipient address to select this configuration.
+                                                  Please note that the period character is reserved for sender flags, so it
+                                                  cannot be used in the username component of the address.
+                                                  ``bad.address`` is not okay, and neither is ``bad.address@mydomain.com``.
 
                                                   The dictionary value is the Apprise
                                                   `YAML configuration <https://github.com/caronc/apprise/wiki/config_yaml>`_
