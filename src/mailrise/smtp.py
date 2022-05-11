@@ -120,8 +120,10 @@ class AppriseHandler(typ.NamedTuple):
         try:
             rcpt = parsercpt(address)
         except RecipientError as rcpt_err:
+            self.config.logger.warning('Invalid recipient: %s', address)
             return f'550 {rcpt_err.message}'
         if rcpt.key not in self.config.senders:
+            self.config.logger.warning('Unknown recipient: %s', address)
             return '551 recipient does not exist in configuration file'
         self.config.logger.info('Accepted recipient: %s', address)
         envelope.rcpt_tos.append(address)
@@ -150,6 +152,9 @@ class AppriseHandler(typ.NamedTuple):
         try:
             await asyncio.gather(*aws)
         except AppriseNotifyFailure:
+            addresses = ' '.join(envelope.rcpt_tos)
+            self.config.logger.warning('Notification failed: %s ➤ %s',
+                                       notification.subject, addresses)
             return '450 failed to send notification'
         return '250 OK'
 
