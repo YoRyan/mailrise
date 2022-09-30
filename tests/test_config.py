@@ -8,6 +8,7 @@ from io import StringIO
 import pytest
 from apprise import NotifyFormat
 
+from mailrise.authenticator import BasicAuthenticator
 from mailrise.config import ConfigFileError, Key, load_config
 
 
@@ -46,6 +47,7 @@ def test_load() -> None:
     assert len(mrise.senders) == 1
     key = Key(user='test')
     assert key in mrise.senders
+    assert mrise.authenticator is None
 
     sender = mrise.senders[key]
     assert len(sender.notifier) == 1
@@ -136,3 +138,24 @@ def test_config_keys() -> None:
     assert len(mrise.senders) == 1
     key = Key(user='user', domain='example.com')
     assert key in mrise.senders
+
+
+def test_authenticator() -> None:
+    """Tests a successful load with an authenticator."""
+    file = StringIO("""
+        configs:
+          test:
+            urls:
+              - json://localhost
+        smtp:
+          auth:
+            basic:
+              username: password
+              AzureDiamond: hunter2
+    """)
+    mrise = load_config(_logger, file)
+    assert isinstance(mrise.authenticator, BasicAuthenticator)
+    logins = mrise.authenticator.logins
+    assert logins['username'] == 'password'
+    assert logins['AzureDiamond'] == 'hunter2'
+    assert not 'test' in logins

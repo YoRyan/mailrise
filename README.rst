@@ -175,6 +175,9 @@ tls.certfile                           string     If TLS is enabled, specifies t
                                                   file must be unencrypted and in PEM format.
 tls.keyfile                            string     If TLS is enabled, specifies the path to the key file. This file must be
                                                   unencrypted and in PEM format.
+smtp.auth.basic                        dictionary Enables basic authentication with a static username and password list.
+                                                  Each entry in the dictionary represents a valid login. The key is the
+                                                  username, while the value is the password.
 smtp.hostname                          string     Specifies the hostname used when responding to the EHLO command.
 
                                                   Defaults to the system FQDN.

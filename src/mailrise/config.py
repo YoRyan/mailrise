@@ -16,6 +16,7 @@ import apprise
 import yaml
 from apprise.common import NotifyType
 
+from mailrise.authenticator import Authenticator, BasicAuthenticator
 from mailrise.util import parseaddrparts
 
 
@@ -123,6 +124,7 @@ class MailriseConfig(NamedTuple):
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
     senders: dict[Key, Sender]
+    authenticator: typ.Optional[Authenticator]
 
 
 def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
@@ -172,7 +174,8 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
         tls_certfile=tls_certfile,
         tls_keyfile=tls_keyfile,
         smtp_hostname=yml_smtp.get('hostname', None),
-        senders=senders
+        senders=senders,
+        authenticator=_load_authenticator(yml_smtp.get('auth', {}))
     )
 
 
@@ -217,3 +220,11 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
         body_template=Template(body_template),
         body_format=body_format
     )
+
+
+def _load_authenticator(config: dict[str, typ.Any]) -> typ.Optional[Authenticator]:
+    if 'basic' in config and isinstance(config['basic'], dict):
+        logins = {str(username): str(password) for username, password in config['basic'].items()}
+        return BasicAuthenticator(logins=logins)
+
+    return None
