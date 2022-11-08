@@ -214,3 +214,85 @@ config     The name of the selected Apprise configuration, unless it uses a cust
 type       The class of Apprise notification. This is "info", "success", "warning", or
            "failure".
 ========== ====================================================================================
+
+Sample file
+-----------
+
+If you are new to YAML syntax, you may find the `Online YAML Parser
+<https://yaml-online-parser.appspot.com/>`_, which converts YAML syntax to the
+underlying JSON structure, a useful aid.
+
+.. code-block:: yaml
+
+    configs:
+
+      # You can send to this config with "basic_assistant@mailrise.xyz".
+      #
+      # The "-" is *very* important, even when configuring just a single URL.
+      # Apprise requires urls to be a YAML *list*.
+      #
+      basic_assistant:
+        urls:
+          - hasio://HOST/ACCESS_TOKEN
+
+      # You can send to this config with "telegram_and_discord@mailrise.xyz".
+      #
+      telegram_and_discord:
+        urls:
+          - tgam://MY_BOT_TOKEN
+          - discord://WEBHOOK_ID/WEBHOOK_TOKEN
+        # You can also control the layout of the message with custom template
+        # strings.
+        mailrise:
+          title_template: "Urgent: ${body}"
+          body_template: ""
+          body_format: text
+
+      # You can send to this config with "my_cool_name@mycooldomain.com".
+      #
+      my_cool_name@mycooldomain.com:
+        urls:
+          - pover://USER_KEY@TOKEN
+
+      # We also support wildcards with the fnmatch library; see
+      # https://docs.python.org/3/library/fnmatch.html for the full syntax.
+      #
+      # YAML requires characters like "*" and "[" to be enclosed in quoted
+      # strings.
+      #
+      # This pattern matches addresses like "awesomeperson@mycooldomain.com"
+      # and "awesomemail@mycooldomain.com".
+      #
+      "awesome*@mycooldomain.com":
+        urls:
+          - pover://USER_KEY@TOKEN
+
+      # Of course, it's also possible to pattern match by the domain.
+      #
+      "my_cool_name@*.net":
+        urls:
+          - pover://USER_KEY@TOKEN
+
+      # Wildcard targets are evaluated in the order they appear in the
+      # configuration file, and Mailrise uses the first match. So, this config
+      # will catch any addresses not matched by the previous targets.
+      #
+      # Note that if you use "*" as your pattern, Mailrise will expand that to
+      # "*@mailrise.xyz", which is probably not the catch-all target you wanted.
+      #
+      "*@*":
+        urls:
+          - discord://WEBHOOK_ID/WEBHOOK_TOKEN
+
+    # Finally, you can enable TLS encryption and/or SMTP authentication if you
+    # want them.
+
+    tls:
+      mode: starttls
+      certfile: /path/to/certificate.pem
+      keyfile: /path/to/privatekey.pem
+
+    smtp:
+      basic:
+        username: password
+        AzureDiamond: hunter2
