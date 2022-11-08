@@ -140,6 +140,45 @@ def test_config_keys() -> None:
     assert key in mrise.senders
 
 
+def test_fnmatch_config_keys() -> None:
+    """Tests the config key parser with fnmatch pattern tokens."""
+    # This defaults to "*@mailrise.xyz", which may not be obvious at first
+    # glance.
+    file = StringIO("""
+        configs:
+          "*":
+            urls:
+              - json://localhost
+    """)
+    mrise = load_config(_logger, file)
+    key = Key(user='user', domain='example.com')
+    assert key not in mrise.senders
+    key = Key(user='user', domain='mailrise.xyz')
+    assert key in mrise.senders
+
+    file = StringIO("""
+        configs:
+          "*@*":
+            urls:
+              - json://localhost
+    """)
+    mrise = load_config(_logger, file)
+    key = Key(user='user', domain='example.com')
+    assert key in mrise.senders
+
+    file = StringIO("""
+        configs:
+          "the*@*":
+            urls:
+              - json://localhost
+    """)
+    mrise = load_config(_logger, file)
+    key = Key(user='user', domain='example.com')
+    assert key not in mrise.senders
+    key = Key(user='thequickbrownfox', domain='example.com')
+    assert key in mrise.senders
+
+
 def test_authenticator() -> None:
     """Tests a successful load with an authenticator."""
     file = StringIO("""

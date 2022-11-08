@@ -134,6 +134,12 @@ configs.<name>                         dictionary ``<name>`` denotes the email a
                                                   ``mailrise.xyz`` domain will be added (resulting in the full email address
                                                   ``notify@mailrise.xyz``).
 
+                                                  `fnmatch <https://docs.python.org/3/library/fnmatch.html>`_ pattern
+                                                  matching tokens are also accepted here, though they are considered special
+                                                  characters in YAML and therefore must be enclosed in quoted strings.
+                                                  Please also note that the domain component still defaults to
+                                                  ``mailrise.xyz``, so to match any username on any domain, use ``*@*``.
+
                                                   Please note that the period character is reserved for sender flags, so it
                                                   cannot be used in the username component of the address.
                                                   ``bad.address`` is not okay, and neither is ``bad.address@mydomain.com``.

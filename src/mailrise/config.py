@@ -8,6 +8,7 @@ import io
 import os
 import typing as typ
 from enum import Enum
+from fnmatch import fnmatchcase
 from logging import Logger
 from string import Template
 from typing import NamedTuple
@@ -102,6 +103,36 @@ class Sender(NamedTuple):
     body_format: typ.Optional[apprise.NotifyFormat]
 
 
+class SenderList(NamedTuple):
+    """A list of senders configured for a Mailrise instance, each with a
+    matching pattern.
+
+    Attributes:
+        by_pattern: A list of [key, sender] tuples, where key contains username
+            and domain patterns that can be matched by fnmatch and sender is
+            the Sender instance itself.
+    """
+    by_pattern: list[typ.Tuple[Key, Sender]]
+
+    def __len__(self):
+        return len(self.by_pattern)
+
+    def __getitem__(self, key: Key) -> Sender:
+        for (pattern_key, sender) in self.by_pattern:
+            if (fnmatchcase(key.user, pattern_key.user)
+                    and fnmatchcase(key.domain, pattern_key.domain)):
+                return sender
+        raise KeyError()
+
+    def __contains__(self, key: Key) -> bool:
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
+
+
 class MailriseConfig(NamedTuple):
     """Configuration data for a Mailrise instance.
 
@@ -113,8 +144,9 @@ class MailriseConfig(NamedTuple):
         tls_certfile: The path to the TLS certificate chain file.
         tls_keyfile: The path to the TLS key file.
         smtp_hostname: The advertised SMTP server hostname.
-        senders: A dictionary of notification targets. The key is the identifier
-            of the configuration, and the value is the Sender instance itself.
+        senders: A list of notification targets, each with a [key, sender]
+            tuple, where key contains username and domain patterns that can be
+            matched by fnmatch and sender is the Sender instance itself.
     """
     logger: Logger
     listen_host: str
@@ -123,7 +155,7 @@ class MailriseConfig(NamedTuple):
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
-    senders: dict[Key, Sender]
+    senders: SenderList
     authenticator: typ.Optional[Authenticator]
 
 
@@ -162,8 +194,9 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
-    senders = {_parsekey(key): _load_sender(config)
-               for key, config in yml_configs.items()}
+    senders = SenderList(
+        by_pattern=[(_parsekey(key), _load_sender(config))
+                    for key, config in yml_configs.items()])
 
     logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
