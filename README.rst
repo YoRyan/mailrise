@@ -296,3 +296,44 @@ underlying JSON structure, a useful aid.
       basic:
         username: password
         AzureDiamond: hunter2
+
+Easy TLS with Traefik
+---------------------
+
+Given the popularity of Let's Encrypt, it can be a pain to get Mailrise to work
+with automatic certificate renewals. For easy TLS setup, I recommend running
+Mailrise in plaintext mode while using a fully-featured ACME client like Traefik
+to handle encryption for you.
+
+docker-compose.yml:
+
+.. code-block:: yaml
+
+    mailrise:
+      image: yoryan/mailrise
+      container_name: mailrise
+      restart: unless-stopped
+      volumes:
+        - ./mailrise.conf:/etc/mailrise.conf:ro
+      labels:
+        traefik.tcp.routers.mailrise.rule: "HostSNI(`*`)"
+        traefik.tcp.routers.mailrise.tls: "true"
+        traefik.tcp.routers.mailrise.tls.certresolver: "letsencrypt"
+        traefik.tcp.routers.mailrise.tls.domains[0].main: "my.public.mailrise.domain.com"
+        traefik.tcp.routers.mailrise.tls.domains[0].sans: ""
+        traefik.tcp.routers.mailrise.entrypoints: "mailsecure"
+
+traefik.yml:
+
+.. code-block:: yaml
+
+    entryPoints:
+      mailsecure:
+        address: ":465"
+
+    certificatesResolvers:
+      letsencrypt:
+        # ...
+
+SMTP clients can then connect to my.public.mailrise.domain.com, on port 465,
+using the TLS-on-connect mode.
