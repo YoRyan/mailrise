@@ -113,7 +113,7 @@ def main(args: list[str]) -> None:
                          'there are no Apprise configs')
         return
 
-    tls: typ.Optional[ssl.SSLContext]
+    tls: typ.Optional[ssl.SSLContext] = None
     tls_mode = config.tls_mode
     if tls_mode != TLSMode.OFF:
         assert isinstance(config.tls_certfile, str)
@@ -131,6 +131,10 @@ def main(args: list[str]) -> None:
     makecon = partial(
         Controller,
         AppriseHandler(config=config),
+        authenticator=config.authenticator,
+        auth_required=config.authenticator is not None,
+        # Permit authentication without TLS.
+        auth_require_tls=tls is not None,
         hostname=config.listen_host,
         port=config.listen_port,
         server_hostname=config.smtp_hostname,
