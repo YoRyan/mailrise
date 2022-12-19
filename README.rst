@@ -293,9 +293,10 @@ underlying JSON structure, a useful aid.
       keyfile: /path/to/privatekey.pem
 
     smtp:
-      basic:
-        username: password
-        AzureDiamond: hunter2
+      auth:
+        basic:
+          username: password
+          AzureDiamond: hunter2
 
 Easy TLS with Traefik
 ---------------------
