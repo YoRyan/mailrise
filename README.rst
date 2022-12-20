@@ -184,6 +184,9 @@ tls.keyfile                            string     If TLS is enabled, specifies t
 smtp.auth.basic                        dictionary Enables basic authentication with a static username and password list.
                                                   Each entry in the dictionary represents a valid login. The key is the
                                                   username, while the value is the password.
+
+                                                  It is recommended to enable TLS to prevent credentials from being leaked over
+                                                  a cleartext connection.
 smtp.hostname                          string     Specifies the hostname used when responding to the EHLO command.
 
                                                   Defaults to the system FQDN.
