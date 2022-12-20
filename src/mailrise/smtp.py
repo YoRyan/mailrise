@@ -122,7 +122,7 @@ class AppriseHandler(typ.NamedTuple):
         except RecipientError as rcpt_err:
             self.config.logger.warning('Invalid recipient: %s', address)
             return f'550 {rcpt_err.message}'
-        if rcpt.key not in self.config.senders:
+        if self.config.get_sender(rcpt.key) is None:
             self.config.logger.warning('Unknown recipient: %s', address)
             return '551 recipient does not exist in configuration file'
         self.config.logger.info('Accepted recipient: %s', address)
@@ -196,7 +196,8 @@ class EmailNotification(typ.NamedTuple):
         Raises:
             AppriseNotifyFailure: Apprise failed to submit the notification.
         """
-        sender = config.senders[rcpt.key]
+        sender = config.get_sender(rcpt.key)
+        assert sender is not None
         mapping = {
             'subject': self.subject,
             'from': self.from_,

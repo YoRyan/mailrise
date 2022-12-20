@@ -46,10 +46,10 @@ def test_load() -> None:
     mrise = load_config(_logger, file)
     assert len(mrise.senders) == 1
     key = Key(user='test')
-    assert key in mrise.senders
     assert mrise.authenticator is None
 
-    sender = mrise.senders[key]
+    sender = mrise.get_sender(key)
+    assert sender is not None
     assert len(sender.notifier) == 1
     assert sender.notifier[0].url().startswith('json://localhost/')
 
@@ -70,9 +70,9 @@ def test_multi_load() -> None:
 
     for user in ('test1', 'test2'):
         key = Key(user=user)
-        assert key in mrise.senders
 
-        sender = mrise.senders[key]
+        sender = mrise.get_sender(key)
+        assert sender is not None
         assert len(sender.notifier) == 1
         assert sender.notifier[0].url().startswith('json://localhost/')
 
@@ -92,9 +92,9 @@ def test_mailrise_options() -> None:
     mrise = load_config(_logger, file)
     assert len(mrise.senders) == 1
     key = Key(user='test')
-    assert key in mrise.senders
 
-    sender = mrise.senders[key]
+    sender = mrise.get_sender(key)
+    assert sender is not None
     assert sender.title_template.template == ''
     assert sender.body_format == NotifyFormat.TEXT
 
@@ -137,7 +137,7 @@ def test_config_keys() -> None:
     mrise = load_config(_logger, file)
     assert len(mrise.senders) == 1
     key = Key(user='user', domain='example.com')
-    assert key in mrise.senders
+    assert mrise.get_sender(key) is not None
 
 
 def test_fnmatch_config_keys() -> None:
@@ -152,9 +152,9 @@ def test_fnmatch_config_keys() -> None:
     """)
     mrise = load_config(_logger, file)
     key = Key(user='user', domain='example.com')
-    assert key not in mrise.senders
+    assert mrise.get_sender(key) is None
     key = Key(user='user', domain='mailrise.xyz')
-    assert key in mrise.senders
+    assert mrise.get_sender(key) is not None
 
     file = StringIO("""
         configs:
@@ -164,7 +164,7 @@ def test_fnmatch_config_keys() -> None:
     """)
     mrise = load_config(_logger, file)
     key = Key(user='user', domain='example.com')
-    assert key in mrise.senders
+    assert mrise.get_sender(key) is not None
 
     file = StringIO("""
         configs:
@@ -174,10 +174,9 @@ def test_fnmatch_config_keys() -> None:
     """)
     mrise = load_config(_logger, file)
     key = Key(user='user', domain='example.com')
-    assert key not in mrise.senders
+    assert mrise.get_sender(key) is None
     key = Key(user='thequickbrownfox', domain='example.com')
-    assert key in mrise.senders
-
+    assert mrise.get_sender(key) is not None
 
 def test_authenticator() -> None:
     """Tests a successful load with an authenticator."""
@@ -197,4 +196,4 @@ def test_authenticator() -> None:
     logins = mrise.authenticator.logins
     assert logins['username'] == 'password'
     assert logins['AzureDiamond'] == 'hunter2'
-    assert not 'test' in logins
+    assert 'test' not in logins

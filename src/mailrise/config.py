@@ -103,36 +103,6 @@ class Sender(NamedTuple):
     body_format: typ.Optional[apprise.NotifyFormat]
 
 
-class SenderList(NamedTuple):
-    """A list of senders configured for a Mailrise instance, each with a
-    matching pattern.
-
-    Attributes:
-        by_pattern: A list of [key, sender] tuples, where key contains username
-            and domain patterns that can be matched by fnmatch and sender is
-            the Sender instance itself.
-    """
-    by_pattern: list[typ.Tuple[Key, Sender]]
-
-    def __len__(self):
-        return len(self.by_pattern)
-
-    def __getitem__(self, key: Key) -> Sender:
-        for (pattern_key, sender) in self.by_pattern:
-            if (fnmatchcase(key.user, pattern_key.user)
-                    and fnmatchcase(key.domain, pattern_key.domain)):
-                return sender
-        raise KeyError()
-
-    def __contains__(self, key: Key) -> bool:
-        try:
-            self[key]
-        except KeyError:
-            return False
-        else:
-            return True
-
-
 class MailriseConfig(NamedTuple):
     """Configuration data for a Mailrise instance.
 
@@ -155,8 +125,15 @@ class MailriseConfig(NamedTuple):
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
-    senders: SenderList
+    senders: list[typ.Tuple[Key, Sender]]
     authenticator: typ.Optional[Authenticator]
+
+    def get_sender(self, key: Key) -> Sender | None:
+        """Find a sender by recipient key."""
+        return next(
+            (sender for (pattern_key, sender) in self.senders
+             if fnmatchcase(key.user, pattern_key.user)
+             and fnmatchcase(key.domain, pattern_key.domain)), None)
 
 
 def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
@@ -194,9 +171,8 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     yml_configs = yml.get('configs', [])
     if not isinstance(yml_configs, dict):
         raise ConfigFileError("'configs' node not a mapping")
-    senders = SenderList(
-        by_pattern=[(_parsekey(key), _load_sender(config))
-                    for key, config in yml_configs.items()])
+    senders = [(_parsekey(key), _load_sender(config))
+               for key, config in yml_configs.items()]
 
     logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
@@ -257,7 +233,8 @@ def _load_sender(config: dict[str, typ.Any]) -> Sender:
 
 def _load_authenticator(config: dict[str, typ.Any]) -> typ.Optional[Authenticator]:
     if 'basic' in config and isinstance(config['basic'], dict):
-        logins = {str(username): str(password) for username, password in config['basic'].items()}
+        logins = {str(username): str(password)
+                  for username, password in config['basic'].items()}
         return BasicAuthenticator(logins=logins)
 
     return None
