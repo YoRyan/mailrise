@@ -178,6 +178,7 @@ def test_fnmatch_config_keys() -> None:
     key = Key(user='thequickbrownfox', domain='example.com')
     assert mrise.get_sender(key) is not None
 
+
 def test_authenticator() -> None:
     """Tests a successful load with an authenticator."""
     file = StringIO("""
