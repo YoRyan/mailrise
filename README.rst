@@ -341,3 +341,40 @@ traefik.yml:
 
 SMTP clients can then connect to my.public.mailrise.domain.com, on port 465,
 using the TLS-on-connect mode.
+
+TLS with self-signed certificate
+--------------------------------
+
+Create a key and a self-signed certificate for your domain(e.g. ``example.com``) with a validity of 10 years using openssl:
+
+.. code-block:: bash
+
+    openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 3650 -nodes -subj '/CN=example.com'
+
+Change the ownership of the files to the mailrise user of the docker container. This can be achieved by using the user's numeric UID/GID, which is ``999``:
+
+.. code-block:: bash
+
+    sudo chown 999:999 *.pem
+
+mailrise.conf:
+
+.. code-block:: yaml
+
+    tls:
+      mode: starttls
+      certfile: /etc/ssl/cert.pem
+      keyfile: /etc/ssl/key.pem
+
+docker-compose.yml:
+
+.. code-block:: yaml
+
+    mailrise:
+      image: yoryan/mailrise
+      container_name: mailrise
+      restart: unless-stopped
+      volumes:
+        - ./mailrise.conf:/etc/mailrise.conf:ro
+        - ./cert.pem:/etc/ssl/cert.pem:ro
+        - ./key.pem:/etc/ssl/key.pem:ro
