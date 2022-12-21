@@ -141,10 +141,15 @@ def main(args: list[str]) -> None:
         decode_data=False,
         ident=f'Mailrise {__version__}',
         tls_context=tls_starttls,
+        ssl_context=tls_onconnect,
         require_starttls=tls_mode == TLSMode.STARTTLSREQUIRE
     )
-    controller = (makecon(ssl_context=tls_onconnect)
-                  if tls_onconnect is not None else makecon())
+    _logger.debug(
+        'Arguments for aiosmtpd: %s',
+        ', '.join(f'{kw}={makecon.keywords[kw]}'
+                  for kw in ('authenticator', 'auth_required', 'auth_require_tls',
+                             'tls_context', 'ssl_context', 'require_starttls')))
+    controller = makecon()
     try:
         controller.start()
     except Exception as err:

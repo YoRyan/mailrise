@@ -26,5 +26,8 @@ class BasicAuthenticator(typ.NamedTuple):
         success = self.logins.get(username) == password
         return AuthResult(success=success)
 
+    def __str__(self) -> str:
+        return f'Basic({len(self.logins)})'
+
 
 Authenticator = BasicAuthenticator
