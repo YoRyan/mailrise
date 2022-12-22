@@ -178,9 +178,15 @@ tls.mode                               string     Selects the operating mode for
 
                                                   Defaults to off.
 tls.certfile                           string     If TLS is enabled, specifies the path to the certificate chain file. This
-                                                  file must be unencrypted and in PEM format.
+                                                  file must be unencrypted and in PEM format. For testing purposes, you can
+                                                  use the ``openssl`` command to
+                                                  `create <https://aiosmtpd.readthedocs.io/en/latest/smtp.html#enabling-starttls>`_
+                                                  a self-signed certificate.
 tls.keyfile                            string     If TLS is enabled, specifies the path to the key file. This file must be
-                                                  unencrypted and in PEM format.
+                                                  unencrypted and in PEM format. For testing purposes, you can use the
+                                                  ``openssl`` command to
+                                                  `create <https://aiosmtpd.readthedocs.io/en/latest/smtp.html#enabling-starttls>`_
+                                                  a self-signed certificate.
 smtp.auth.basic                        dictionary Enables basic authentication with a static username and password list.
                                                   Each entry in the dictionary represents a valid login. The key is the
                                                   username, while the value is the password.
