@@ -12,7 +12,7 @@ import typing as typ
 from asyncio.events import new_event_loop
 from functools import partial
 
-from aiosmtpd.controller import Controller
+from aiosmtpd.controller import UnthreadedController
 
 from mailrise import __version__
 from mailrise.config import ConfigFileError, TLSMode, load_config
@@ -125,11 +125,8 @@ def main(args: list[str]) -> None:
     tls_starttls = \
         tls if tls_mode in (TLSMode.STARTTLS, TLSMode.STARTTLSREQUIRE) else None
 
-    # TODO: Use UnthreadedController (with `loop`) when that becomes available
-    # in stable aiosmtpd.
-
     makecon = partial(
-        Controller,
+        UnthreadedController,
         AppriseHandler(config=config),
         authenticator=config.authenticator,
         auth_required=config.authenticator is not None,
@@ -149,15 +146,10 @@ def main(args: list[str]) -> None:
         ', '.join(f'{kw}={makecon.keywords[kw]}'
                   for kw in ('authenticator', 'auth_required', 'auth_require_tls',
                              'tls_context', 'ssl_context', 'require_starttls')))
-    controller = makecon()
-    try:
-        controller.start()
-    except Exception as err:
-        _logger.critical('Failed to start aiosmtpd controller: %s', err)
-        controller.stop()
-        raise
 
     eloop = new_event_loop()
+    controller = makecon(loop=eloop)
+    controller.begin()
     try:
         eloop.run_forever()
     finally:
