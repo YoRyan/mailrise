@@ -130,8 +130,8 @@ def main(args: list[str]) -> None:
         AppriseHandler(config=config),
         authenticator=config.authenticator,
         auth_required=config.authenticator is not None,
-        # Permit authentication without TLS.
-        auth_require_tls=tls is not None,
+        # We assume that if you've enabled STARTTLS, you'll want to require it.
+        auth_require_tls=tls_starttls is not None,
         hostname=config.listen_host,
         port=config.listen_port,
         server_hostname=config.smtp_hostname,
