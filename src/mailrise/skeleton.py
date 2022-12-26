@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import signal
 import ssl
 import sys
 import typing as typ
@@ -149,12 +150,16 @@ def main(args: list[str]) -> None:
 
     eloop = new_event_loop()
     controller = makecon(loop=eloop)
+
+    def clean_exit():
+        _logger.info('Caught exit signal...')
+        eloop.stop()
+        controller.end()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        eloop.add_signal_handler(sig, clean_exit)
+
     controller.begin()
-    try:
-        eloop.run_forever()
-    finally:
-        eloop.close()
-        controller.stop()
+    eloop.run_forever()
 
 
 def run() -> None:
