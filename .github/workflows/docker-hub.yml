@@ -26,10 +26,10 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: yoryan/mailrise
-          # main tip is tagged "latest"; releases are tagged "vX.X.X"
+          # main tip is tagged "latest"; releases are tagged "X.X.X"
           tags: |
             type=schedule
-            type=ref,event=tag,prefix=v
+            type=ref,event=tag
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
       -
         name: Login to DockerHub
