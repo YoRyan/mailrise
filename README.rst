@@ -292,6 +292,10 @@ underlying JSON structure, a useful aid.
       "*@*":
         urls:
           - discord://WEBHOOK_ID/WEBHOOK_TOKEN
+          # You can also insert environment variables, a feature lifted directly
+          # from Home Assistant. This is useful for reading secrets from
+          # container orchestrators like Kubernetes.
+          - !env_var MY_SECRET_URL
 
     # Finally, you can enable TLS encryption and/or SMTP authentication if you
     # want them.
