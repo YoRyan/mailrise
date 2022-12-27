@@ -31,10 +31,21 @@ systems, and outdated software to gain access to the full suite of 60+
 notification services supported by Apprise, from Matrix to Nextcloud to your
 desktop or mobile device.
 
+.. image:: https://raw.githubusercontent.com/YoRyan/mailrise/main/src/mailrise/asset/homelab-diagram.png
+  :alt: A block diagram demonstrating how Mailrise can accept emails from a
+        variety of sources and produce notifications for a variety of services
+
 Just as email brought written messages into the 21st century, Mailrise
 brings email notifications into the year 2021 and beyond. Compared to a
 conventional SMTP server, it's more secure, too—no more replicating your Gmail
 password to each of your Linux boxes!
+
+    "After a few very negative experiences with mail providers and their
+    detection of spam accounts in the last year... Fuck email. I will never set
+    up a mail account for notifications. And with Mailrise I don't have to
+    anymore!"
+
+    -- `u/Sarcism <https://www.reddit.com/r/selfhosted/comments/wwx0ue/comment/ilnqhkf/>`_
 
 A Mailrise daemon is configured with a list of Apprise
 `configuration files <https://github.com/caronc/apprise/wiki/config_yaml>`_.
