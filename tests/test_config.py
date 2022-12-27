@@ -7,6 +7,7 @@ from io import StringIO
 
 import pytest
 from apprise import NotifyFormat
+from pytest import MonkeyPatch
 
 from mailrise.authenticator import BasicAuthenticator
 from mailrise.config import ConfigFileError, Key, load_config
@@ -198,3 +199,46 @@ def test_authenticator() -> None:
     assert logins['username'] == 'password'
     assert logins['AzureDiamond'] == 'hunter2'
     assert 'test' not in logins
+
+
+def test_env_var() -> None:
+    """Tests the environment variable loader."""
+    with MonkeyPatch.context() as ctx:
+        ctx.setenv('mytesturl', 'json://localhost')
+
+        files = [
+            StringIO("""
+              configs:
+                test:
+                  urls:
+                    - !env_var mytesturl
+            """),
+            StringIO("""
+              configs:
+                test:
+                  urls:
+                    - !env_var fallback json://localhost
+            """)
+        ]
+        for file in files:
+            mrise = load_config(_logger, file)
+            assert len(mrise.senders) == 1
+            key = Key(user='test')
+            sender = mrise.get_sender(key)
+            assert sender is not None
+            # Missing type annotation for this property as of Dec 2022.
+            ap_servers = sender.notifier.servers  # type: ignore
+            assert len(ap_servers) == 1
+            config = ap_servers[0]
+            servers = config.servers()
+            assert len(servers) == 1
+            assert servers[0].url().startswith('json://localhost')
+
+    with pytest.raises(ConfigFileError):
+        file = StringIO("""
+          configs:
+            test:
+              urls:
+                - !env_var error
+        """)
+        load_config(_logger, file)

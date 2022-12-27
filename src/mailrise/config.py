@@ -9,6 +9,7 @@ import os
 import typing as typ
 from enum import Enum
 from fnmatch import fnmatchcase
+from functools import partial
 from logging import Logger
 from string import Template
 from typing import NamedTuple
@@ -45,6 +46,35 @@ DEFAULT_ASSET = apprise.AppriseAsset(
         )
     )
 )
+
+
+class ConfigFileLoader(yaml.FullLoader):  # pylint: disable=too-many-ancestors
+    """Our YAML loader class, which comes with an attached logger."""
+    logger: Logger
+
+    def __init__(self, stream, logger: Logger) -> None:
+        super().__init__(stream)
+        self.logger = logger
+        self.add_constructor('!env_var', ConfigFileLoader._env_var_constructor)
+
+    @staticmethod
+    def _env_var_constructor(loader: ConfigFileLoader, node: yaml.nodes.Node) -> str:
+        """Load environment variables and embed them into the configuration YAML."""
+        value = str(node.value)
+        try:
+            env, default = value.split(maxsplit=1)
+        except ValueError:
+            env, default = value, None
+
+        if env in os.environ:
+            return os.environ[env]
+        if default:
+            loader.logger.warning(
+                'Environment variable %s not defined, using default value: %s',
+                env, default)
+            return default
+        raise ConfigFileError(
+            f'Environment variable {env} not defined and no default value provided')
 
 
 class ConfigFileError(Exception):
@@ -149,7 +179,7 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     Raises:
         ConfigFileError: The configuration file is invalid.
     """
-    yml = yaml.safe_load(file)
+    yml = yaml.load(file, Loader=partial(ConfigFileLoader, logger=logger))
     if not isinstance(yml, dict):
         raise ConfigFileError("root node not a mapping")
 
