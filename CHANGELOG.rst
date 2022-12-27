@@ -2,6 +2,20 @@
 Changelog
 =========
 
+Version 1.3.0
+=============
+
+:Date: December 26, 2022
+
+- FIX: Docker image not responding to stop signal
+- Upgrade to Apprise v1.2.0
+- Upgrade to aiosmtpd v1.4.3, which fixes broken STARTTLS
+- Add support for multipart messages produced by Blue Iris
+- Add basic authentication
+- Add config name wildcarding with fnmatch
+- Add more logging messages (-v/-vv) to ease troubleshooting
+- Add !env_var directive to read configuration data from environment variables
+
 Version 1.2.1
 =============
 
