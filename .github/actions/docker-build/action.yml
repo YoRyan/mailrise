@@ -1,0 +1,39 @@
+name: Docker build and push
+description: Build container images and push them to a registry
+
+inputs:
+  images:
+    description: Name for built images
+    required: true
+
+runs:
+  using: composite
+  steps:
+    -
+      name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    -
+      name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ inputs.images }}
+        tags: |
+          type=schedule
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}
+          type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags') }}
+          type=raw,value=latest,enable={{is_default_branch}}
+    -
+      name: Build and push
+      id: docker_build
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        push: true
+        platforms: linux/amd64,linux/arm64/v8
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
