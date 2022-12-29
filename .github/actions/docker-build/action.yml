@@ -5,6 +5,8 @@ inputs:
   images:
     description: Name for built images
     required: true
+  flavor:
+    description: Global behavior for tags
 
 runs:
   using: composite
@@ -21,6 +23,9 @@ runs:
       uses: docker/metadata-action@v4
       with:
         images: ${{ inputs.images }}
+        flavor: |
+          latest=false
+          ${{ inputs.flavor }}
         tags: |
           type=schedule
           type=semver,pattern={{version}}

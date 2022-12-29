@@ -44,3 +44,5 @@ jobs:
         uses: ./.github/actions/docker-build
         with:
           images: yoryan/mailrise
+          flavor: |
+            suffix=-buster
