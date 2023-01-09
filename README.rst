@@ -259,7 +259,7 @@ underlying JSON structure, a useful aid.
       #
       telegram_and_discord:
         urls:
-          - tgam://MY_BOT_TOKEN
+          - tgram://MY_BOT_TOKEN
           - discord://WEBHOOK_ID/WEBHOOK_TOKEN
         # You can also control the layout of the message with custom template
         # strings.
