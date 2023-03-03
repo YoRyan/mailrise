@@ -109,10 +109,6 @@ def main(args: list[str]) -> None:
     except ConfigFileError as err:
         _logger.critical('Error loading configuration file: %s', err.message)
         return
-    if len(config.senders) < 1:
-        _logger.critical('Error loading configuration file: '
-                         'there are no Apprise configs')
-        return
 
     tls: typ.Optional[ssl.SSLContext] = None
     tls_mode = config.tls_mode

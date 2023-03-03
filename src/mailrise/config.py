@@ -8,44 +8,15 @@ import io
 import os
 import typing as typ
 from enum import Enum
-from fnmatch import fnmatchcase
 from functools import partial
 from logging import Logger
-from string import Template
 from typing import NamedTuple
 
-import apprise
 import yaml
-from apprise.common import NotifyType
 
 from mailrise.authenticator import Authenticator, BasicAuthenticator
-from mailrise.util import parseaddrparts
-
-
-DEFAULT_ASSET = apprise.AppriseAsset(
-    app_id='Mailrise',
-    app_desc='Mailrise SMTP Notification Relay',
-    app_url='https://mailrise.xyz',
-    html_notify_map={
-        NotifyType.INFO: '#2e6e99',
-        NotifyType.SUCCESS: '#2e992e',
-        NotifyType.WARNING: '#99972e',
-        NotifyType.FAILURE: '#993a2e'
-    },
-    theme=None,
-    default_extension='.png',
-    image_url_mask='https://raw.githubusercontent.com/YoRyan/mailrise/main/'
-                   'src/mailrise/asset/mailrise-{TYPE}-{XY}{EXTENSION}',
-    image_url_logo='https://raw.githubusercontent.com/YoRyan/mailrise/main/'
-                   'src/mailrise/asset/mailrise-logo.png',
-    image_path_mask=os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
-            'asset',
-            'mailrise-{TYPE}-{XY}{EXTENSION}'
-        )
-    )
-)
+from mailrise.router import ConfigFileError, Router
+from mailrise.simple_router import load_from_yaml as load_simple_router
 
 
 class ConfigFileLoader(yaml.FullLoader):  # pylint: disable=too-many-ancestors
@@ -77,60 +48,12 @@ class ConfigFileLoader(yaml.FullLoader):  # pylint: disable=too-many-ancestors
             f'Environment variable {env} not defined and no default value provided')
 
 
-class ConfigFileError(Exception):
-    """Exception raised for invalid configuration files.
-
-    Attributes:
-        message: The reason the configuration file is invalid.
-    """
-    message: str
-
-    def __init__(self, message: str) -> None:
-        super().__init__(self)
-        self.message = message
-
-
 class TLSMode(Enum):
     """Specifies a TLS encryption operating mode."""
     OFF = 'no TLS'
     ONCONNECT = 'TLS on connect'
     STARTTLS = 'STARTTLS, optional'
     STARTTLSREQUIRE = 'STARTTLS, required'
-
-
-class Key(NamedTuple):
-    """A unique identifier for a sender target.
-
-    Attributes:
-        user: The user portion of the recipient address.
-        domain: The domain portion of the recipient address, which defaults
-            to "mailrise.xyz".
-    """
-    user: str
-    domain: str = 'mailrise.xyz'
-
-    def __str__(self) -> str:
-        return f'{self.user}@{self.domain}'
-
-    def as_configured(self) -> str:
-        """Drop the domain part of this identifier if it is 'mailrise.xyz'."""
-        return self.user if self.domain == 'mailrise.xyz' else str(self)
-
-
-class Sender(NamedTuple):
-    """A configured target for Apprise notifications.
-
-    Attributes:
-        notifier: The Apprise instance.
-        title_template: The template string for notification title texts.
-        body_template: The template string for notification body texts.
-        body_format: The content type for notifications. If None, this will be
-            auto-detected from the body parts of emails.
-    """
-    notifier: apprise.Apprise
-    title_template: Template
-    body_template: Template
-    body_format: typ.Optional[apprise.NotifyFormat]
 
 
 class MailriseConfig(NamedTuple):
@@ -155,15 +78,8 @@ class MailriseConfig(NamedTuple):
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
-    senders: list[typ.Tuple[Key, Sender]]
+    router: Router
     authenticator: typ.Optional[Authenticator]
-
-    def get_sender(self, key: Key) -> Sender | None:
-        """Find a sender by recipient key."""
-        return next(
-            (sender for (pattern_key, sender) in self.senders
-             if fnmatchcase(key.user, pattern_key.user)
-             and fnmatchcase(key.domain, pattern_key.domain)), None)
 
 
 def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
@@ -198,13 +114,8 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
 
     yml_smtp = yml.get('smtp', {})
 
-    yml_configs = yml.get('configs', [])
-    if not isinstance(yml_configs, dict):
-        raise ConfigFileError("'configs' node not a mapping")
-    senders = [(_parsekey(key), _load_sender(config))
-               for key, config in yml_configs.items()]
+    router = load_simple_router(logger, yml.get('configs', {}))
 
-    logger.info('Loaded configuration with %d recipient(s)', len(senders))
     return MailriseConfig(
         logger=logger,
         listen_host=yml_listen.get('host', ''),
@@ -213,51 +124,8 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
         tls_certfile=tls_certfile,
         tls_keyfile=tls_keyfile,
         smtp_hostname=yml_smtp.get('hostname', None),
-        senders=senders,
+        router=router,
         authenticator=_load_authenticator(yml_smtp.get('auth', {}))
-    )
-
-
-def _parsekey(key: str) -> Key:
-    def err():
-        return ConfigFileError(f"invalid config key '{key}'; should be a string or "
-                               "an email address without periods in the username")
-    if '@' in key:
-        user, domain = parseaddrparts(key)
-        if not user or not domain or '.' in user:
-            raise err()
-        return Key(user=user, domain=domain.lower())
-    if '.' in key:
-        raise err()
-
-    return Key(user=key)
-
-
-def _load_sender(config: dict[str, typ.Any]) -> Sender:
-    if not isinstance(config, dict):
-        raise ConfigFileError("apprise config node not a mapping")
-
-    # Extract Mailrise-specific values.
-    mr_config = config.get('mailrise', {})
-    config.pop('mailrise', None)
-    title_template = mr_config.get('title_template', '$subject ($from)')
-    body_template = mr_config.get('body_template', '$body')
-    body_format = mr_config.get('body_format', None)
-    if not any(body_format == c for c in (None,
-                                          apprise.NotifyFormat.TEXT,
-                                          apprise.NotifyFormat.HTML,
-                                          apprise.NotifyFormat.MARKDOWN)):
-        raise ConfigFileError(f"invalid apprise notification format: {body_format}")
-
-    aconfig = apprise.AppriseConfig(asset=DEFAULT_ASSET)
-    aconfig.add_config(yaml.safe_dump(config), format='yaml')
-    apobj = apprise.Apprise(aconfig)
-
-    return Sender(
-        notifier=apobj,
-        title_template=Template(title_template),
-        body_template=Template(body_template),
-        body_format=body_format
     )
 
 

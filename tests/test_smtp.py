@@ -6,40 +6,8 @@ from email.message import EmailMessage
 from pathlib import Path
 
 import apprise
-import pytest
 
-from mailrise.config import Key
-from mailrise.smtp import RecipientError, parsemessage, parsercpt
-
-
-def test_parsercpt() -> None:
-    """Tests for recipient parsing."""
-    rcpt = parsercpt('test@mailrise.xyz')
-    assert rcpt.key == Key(user='test')
-    assert rcpt.notify_type == apprise.NotifyType.INFO
-
-    rcpt = parsercpt('test.warning@mailrise.xyz')
-    assert rcpt.key == Key(user='test')
-    assert rcpt.notify_type == apprise.NotifyType.WARNING
-
-    rcpt = parsercpt('"with_quotes"@mailrise.xyz')
-    assert rcpt.key == Key(user='with_quotes')
-    assert rcpt.notify_type == apprise.NotifyType.INFO
-
-    rcpt = parsercpt('"with_quotes.success"@mailrise.xyz')
-    assert rcpt.key == Key('with_quotes')
-    assert rcpt.notify_type == apprise.NotifyType.SUCCESS
-
-    rcpt = parsercpt('"weird_quotes".success@mailrise.xyz')
-    assert rcpt.key == Key('"weird_quotes"')
-    assert rcpt.notify_type == apprise.NotifyType.SUCCESS
-
-    rcpt = parsercpt('John Doe <johndoe.warning@mailrise.xyz>')
-    assert rcpt.key == Key('johndoe')
-    assert rcpt.notify_type == apprise.NotifyType.WARNING
-
-    with pytest.raises(RecipientError):
-        parsercpt("Invalid Email <bad@>")
+from mailrise.smtp import _parsemessage
 
 
 def test_parsemessage() -> None:
@@ -48,7 +16,7 @@ def test_parsemessage() -> None:
     msg.set_content('Hello, World!')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = parsemessage(msg)
+    notification = _parsemessage(msg)
     assert notification.subject == 'Test Message'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
@@ -56,7 +24,7 @@ def test_parsemessage() -> None:
     msg = EmailMessage()
     msg.set_content('Hello, World!')
     msg.add_alternative('Hello, <strong>World!</strong>', subtype='html')
-    notification = parsemessage(msg)
+    notification = _parsemessage(msg)
     assert notification.subject == '[no subject]'
     assert notification.from_ == '[no sender]'
     assert notification.body == 'Hello, <strong>World!</strong>'
@@ -73,7 +41,7 @@ def test_multipart() -> None:
     msg.add_related(img_data, maintype='image', subtype='jpeg')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = parsemessage(msg)
+    notification = _parsemessage(msg)
     assert notification.subject == 'Test Message'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
@@ -83,7 +51,7 @@ def test_multipart() -> None:
     msg.add_alternative('<strong>Hello, World!</strong>', subtype='html')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = parsemessage(msg)
+    notification = _parsemessage(msg)
     assert notification.subject == 'Test Message'
     assert notification.body == '<strong>Hello, World!</strong>'
     assert notification.body_format == apprise.NotifyFormat.HTML
@@ -105,7 +73,7 @@ def test_parseattachments() -> None:
         subtype='jpeg',
         filename=img_name
     )
-    notification = parsemessage(msg)
+    notification = _parsemessage(msg)
     assert notification.subject == 'Now With Images'
     assert notification.from_ == 'sender@example.com'
     assert notification.body == 'Hello, World!'
@@ -130,7 +98,7 @@ def test_parseattachments() -> None:
         subtype='jpeg',
         filename=f'2_{img_name}'
     )
-    notification = parsemessage(msg)
+    notification = _parsemessage(msg)
     assert notification.subject == 'Now With Images'
     assert notification.from_ == 'sender@example.com'
     assert notification.body == 'Hello, World!'

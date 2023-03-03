@@ -7,20 +7,18 @@ from __future__ import annotations
 import asyncio
 import email.policy
 import os
-import re
 import typing as typ
 from email import contentmanager
-from email.message import EmailMessage
+from email.message import EmailMessage as SMTPEmail
 from email.parser import BytesParser
-from email.utils import parseaddr
 from tempfile import NamedTemporaryFile
 
 import apprise
 from aiosmtpd.smtp import Envelope, Session, SMTP
 from apprise.common import ContentLocation
 
-from mailrise.config import Key, MailriseConfig
-from mailrise.util import parseaddrparts
+from mailrise.config import MailriseConfig
+import mailrise.router as r
 
 # Mypy, for some reason, considers AttachBase a module, not a class.
 MYPY = False
@@ -29,19 +27,6 @@ if MYPY:
     from apprise.attachment.AttachBase import AttachBase
 else:
     from apprise.attachment import AttachBase
-
-
-class RecipientError(Exception):
-    """Exception raised for invalid recipient email addresses.
-
-    Attributes:
-        message: The reason the recipient is invalid.
-    """
-    message: str
-
-    def __init__(self, message: str) -> None:
-        super().__init__(self)
-        self.message = message
 
 
 class AppriseNotifyFailure(Exception):
@@ -57,52 +42,11 @@ class UnreadableMultipart(Exception):
     Attributes:
         message: The multipart email part.
     """
-    message: EmailMessage
+    message: SMTPEmail
 
-    def __init__(self, message: EmailMessage) -> None:
+    def __init__(self, message: SMTPEmail) -> None:
         super().__init__(self)
         self.message = message
-
-
-class Recipient(typ.NamedTuple):
-    """The routing information encoded into a recipient address.
-
-    Attributes:
-        key: An index into the dictionary of senders.
-        notify_type: The type of notification to send.
-    """
-    key: Key
-    notify_type: apprise.NotifyType
-
-
-def parsercpt(addr: str) -> Recipient:
-    """Parses an email address into a `Recipient`.
-
-    Args:
-        addr: The email address to parse.
-
-    Returns:
-        The `Recipient` instance.
-    """
-    _, rcpt = parseaddr(addr)
-    user, domain = parseaddrparts(rcpt)
-    if not user or not domain:
-        raise RecipientError(f"'{rcpt}' is not a valid mailrise recipient")
-    match = re.search(
-        r'(.*)\.(info|success|warning|failure)$', user, re.IGNORECASE)
-    ntype = apprise.NotifyType.INFO
-    if match is not None:
-        user = match.group(1)
-        ntypes = match.group(2)
-        if ntypes == 'info':
-            pass
-        elif ntypes == 'success':
-            ntype = apprise.NotifyType.SUCCESS
-        elif ntypes == 'warning':
-            ntype = apprise.NotifyType.WARNING
-        elif ntypes == 'failure':
-            ntype = apprise.NotifyType.FAILURE
-    return Recipient(key=Key(user=user, domain=domain.lower()), notify_type=ntype)
 
 
 class AppriseHandler(typ.NamedTuple):
@@ -117,15 +61,7 @@ class AppriseHandler(typ.NamedTuple):
     async def handle_RCPT(self, server: SMTP, session: Session, envelope: Envelope,
                           address: str, rcpt_options: list[str]) -> str:
         """Called during RCPT TO."""
-        try:
-            rcpt = parsercpt(address)
-        except RecipientError as rcpt_err:
-            self.config.logger.warning('Invalid recipient: %s', address)
-            return f'550 {rcpt_err.message}'
-        if self.config.get_sender(rcpt.key) is None:
-            self.config.logger.warning('Unknown recipient: %s', address)
-            return '551 recipient does not exist in configuration file'
-        self.config.logger.info('Accepted recipient: %s', address)
+        self.config.logger.info('Added recipient: %s', address)
         envelope.rcpt_tos.append(address)
         return '250 OK'
 
@@ -137,9 +73,9 @@ class AppriseHandler(typ.NamedTuple):
         assert isinstance(envelope.content, bytes)
         parser = BytesParser(policy=email.policy.default)
         message = parser.parsebytes(envelope.content)
-        assert isinstance(message, EmailMessage)
+        assert isinstance(message, SMTPEmail)
         try:
-            notification = parsemessage(message)
+            notification = _parsemessage(message)
         except UnreadableMultipart as mpe:
             subparts = \
                 ' '.join(part.get_content_type() for part in mpe.message.iter_parts())
@@ -147,82 +83,29 @@ class AppriseHandler(typ.NamedTuple):
                                      mpe.message.get_content_type(), subparts)
         self.config.logger.info('Accepted email, subject: %s', notification.subject)
 
-        rcpts = (parsercpt(addr) for addr in envelope.rcpt_tos)
-        aws = (notification.submit(self.config, rcpt) for rcpt in rcpts)
         try:
-            await asyncio.gather(*aws)
-        except AppriseNotifyFailure:
+            to_send = [data async for data in self.config.router.email_to_apprise(
+                           self.config.logger,
+                           notification,
+                           envelope.rcpt_tos
+                       )]
+        except Exception as e:  # pylint: disable=broad-except
+            return f'450 router had internal exception: {e}'
+
+        results = await asyncio.gather(
+            *(_apprise_notify(self.config, data) for data in to_send),
+            return_exceptions=True
+        )
+        if any(isinstance(result, AppriseNotifyFailure) for result in results):
             addresses = ' '.join(envelope.rcpt_tos)
             self.config.logger.warning('Notification failed: %s ➤ %s',
                                        notification.subject, addresses)
             return '450 failed to send notification'
+
         return '250 OK'
 
 
-class Attachment(typ.NamedTuple):
-    """Represents an email attachment.
-
-    Attributes:
-        data: The contents of the attachment.
-        filename: The filename of the attachment as it was set by the sender.
-    """
-    data: bytes
-    filename: str
-
-
-class EmailNotification(typ.NamedTuple):
-    """Represents an email accepted for notifying.
-
-    Attributes:
-        subject: The email subject.
-        from_: The email sender address.
-        body: The contents of the email.
-        body_format: The type of the contents of the email.
-        attachments: The email attachments.
-    """
-    subject: str
-    from_: str
-    body: str
-    body_format: apprise.NotifyFormat
-    attachments: list[Attachment]
-
-    async def submit(self, config: MailriseConfig, rcpt: Recipient) -> None:
-        """Turns the email into an Apprise notification and submits it.
-
-        Args:
-            config: The Mailrise configuration to use.
-            rcpt: The recipient data to use.
-
-        Raises:
-            AppriseNotifyFailure: Apprise failed to submit the notification.
-        """
-        sender = config.get_sender(rcpt.key)
-        assert sender is not None
-        mapping = {
-            'subject': self.subject,
-            'from': self.from_,
-            'body': self.body,
-            'to': str(rcpt.key),
-            'config': rcpt.key.as_configured(),
-            'type': rcpt.notify_type
-        }
-        attachbase = [AttachMailrise(config, attach) for attach in self.attachments]
-        res = await sender.notifier.async_notify(
-            title=sender.title_template.safe_substitute(mapping),
-            body=sender.body_template.safe_substitute(mapping),
-            # Use the configuration body format if specified.
-            body_format=sender.body_format or self.body_format,
-            notify_type=rcpt.notify_type,
-            attach=apprise.AppriseAttachment(attachbase)
-        )
-        # NOTE: This should probably be called by Apprise itself, but it isn't?
-        for base in attachbase:
-            base.invalidate()
-        if not res:
-            raise AppriseNotifyFailure()
-
-
-def parsemessage(msg: EmailMessage) -> EmailNotification:
+def _parsemessage(msg: SMTPEmail) -> r.EmailMessage:
     """Parses an email message into an `EmailNotification`.
 
     Args:
@@ -233,8 +116,8 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     """
     py_body_part = msg.get_body()
     body: typ.Optional[tuple[str, apprise.NotifyFormat]]
-    if isinstance(py_body_part, EmailMessage):
-        body_part: EmailMessage
+    if isinstance(py_body_part, SMTPEmail):
+        body_part: SMTPEmail
         try:
             py_body_part.get_content()
         except KeyError:  # stdlib failed to read the content, which means multipart
@@ -248,8 +131,8 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     else:
         body = None
     attachments = [_parseattachment(part) for part in msg.iter_attachments()
-                   if isinstance(part, EmailMessage)]
-    return EmailNotification(
+                   if isinstance(part, SMTPEmail)]
+    return r.EmailMessage(
         subject=msg.get('Subject', '[no subject]'),
         from_=msg.get('From', '[no sender]'),
         # Apprise will fail if no body is supplied.
@@ -259,7 +142,7 @@ def parsemessage(msg: EmailMessage) -> EmailNotification:
     )
 
 
-def _getmultiparttext(msg: EmailMessage) -> EmailMessage:
+def _getmultiparttext(msg: SMTPEmail) -> SMTPEmail:
     """Search for the textual body part of a multipart email."""
     content_type = msg.get_content_type()
     if content_type in ('multipart/related', 'multipart/alternative'):
@@ -268,7 +151,7 @@ def _getmultiparttext(msg: EmailMessage) -> EmailMessage:
         for parttype in ('multipart/alternative', 'multipart/related',
                          'text/html', 'text/plain'):
             found = \
-                next((p for p in parts if isinstance(p, EmailMessage)
+                next((p for p in parts if isinstance(p, SMTPEmail)
                      and p.get_content_type() == parttype), None)
             if found is not None:
                 return _getmultiparttext(found)
@@ -276,11 +159,31 @@ def _getmultiparttext(msg: EmailMessage) -> EmailMessage:
     return msg
 
 
-def _parseattachment(part: EmailMessage) -> Attachment:
-    return Attachment(data=part.get_content(), filename=part.get_filename(''))
+def _parseattachment(part: SMTPEmail) -> r.EmailAttachment:
+    return r.EmailAttachment(data=part.get_content(), filename=part.get_filename(''))
 
 
-class AttachMailrise(AttachBase):
+async def _apprise_notify(config: MailriseConfig, data: r.AppriseNotification):
+    ap_config = apprise.AppriseConfig(asset=data.asset or r.DEFAULT_ASSET)
+    ap_config.add_config(data.config, format=data.config_format)
+    ap_instance = apprise.Apprise(ap_config)
+
+    attach_base = [_AttachMailrise(config, attach) for attach in data.attachments]
+    success = await ap_instance.async_notify(
+        title=data.title,
+        body=data.body,
+        body_format=data.body_format,
+        notify_type=data.notify_type,
+        attach=attach_base
+    )
+    # NOTE: This should probably be called by Apprise itself, but it isn't?
+    for base in attach_base:
+        base.invalidate()
+    if not success:
+        raise AppriseNotifyFailure
+
+
+class _AttachMailrise(AttachBase):
     """An Apprise attachment type that wraps `Attachment`.
 
     Data is stored in temporary files for upload.
@@ -294,7 +197,7 @@ class AttachMailrise(AttachBase):
     _mrfile = None  # Satisfy mypy by initializing as an Optional.
 
     def __init__(self, config: MailriseConfig,
-                 attach: Attachment, **kwargs: typ.Any) -> None:
+                 attach: r.EmailAttachment, **kwargs: typ.Any) -> None:
         super().__init__(**kwargs)
         self._mrconfig = config
         self._mrattach = attach

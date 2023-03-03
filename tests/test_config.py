@@ -6,11 +6,12 @@ import logging
 from io import StringIO
 
 import pytest
-from apprise import NotifyFormat
+from apprise import Apprise, AppriseConfig, NotifyFormat
 from pytest import MonkeyPatch
 
 from mailrise.authenticator import BasicAuthenticator
-from mailrise.config import ConfigFileError, Key, load_config
+from mailrise.config import ConfigFileError, load_config
+from mailrise.simple_router import _Key, SimpleRouter
 
 
 _logger = logging.getLogger(__name__)
@@ -45,14 +46,17 @@ def test_load() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, file)
-    assert len(mrise.senders) == 1
-    key = Key(user='test')
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    assert len(router.senders) == 1
+    key = _Key(user='test')
     assert mrise.authenticator is None
 
-    sender = mrise.get_sender(key)
+    sender = router.get_sender(key)
     assert sender is not None
-    assert len(sender.notifier) == 1
-    assert sender.notifier[0].url().startswith('json://localhost/')
+    notifier = _make_notifier(sender.config_yaml)
+    assert len(notifier) == 1
+    assert notifier[0].url().startswith('json://localhost/')
 
 
 def test_multi_load() -> None:
@@ -67,15 +71,18 @@ def test_multi_load() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, file)
-    assert len(mrise.senders) == 2
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    assert len(router.senders) == 2
 
     for user in ('test1', 'test2'):
-        key = Key(user=user)
+        key = _Key(user=user)
 
-        sender = mrise.get_sender(key)
+        sender = router.get_sender(key)
         assert sender is not None
-        assert len(sender.notifier) == 1
-        assert sender.notifier[0].url().startswith('json://localhost/')
+        notifier = _make_notifier(sender.config_yaml)
+        assert len(notifier) == 1
+        assert notifier[0].url().startswith('json://localhost/')
 
 
 def test_mailrise_options() -> None:
@@ -91,10 +98,12 @@ def test_mailrise_options() -> None:
               body_format: "text"
     """)
     mrise = load_config(_logger, file)
-    assert len(mrise.senders) == 1
-    key = Key(user='test')
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    assert len(router.senders) == 1
+    key = _Key(user='test')
 
-    sender = mrise.get_sender(key)
+    sender = router.get_sender(key)
     assert sender is not None
     assert sender.title_template.template == ''
     assert sender.body_format == NotifyFormat.TEXT
@@ -136,9 +145,11 @@ def test_config_keys() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, file)
-    assert len(mrise.senders) == 1
-    key = Key(user='user', domain='example.com')
-    assert mrise.get_sender(key) is not None
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    assert len(router.senders) == 1
+    key = _Key(user='user', domain='example.com')
+    assert router.get_sender(key) is not None
 
 
 def test_fnmatch_config_keys() -> None:
@@ -152,10 +163,12 @@ def test_fnmatch_config_keys() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, file)
-    key = Key(user='user', domain='example.com')
-    assert mrise.get_sender(key) is None
-    key = Key(user='user', domain='mailrise.xyz')
-    assert mrise.get_sender(key) is not None
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    key = _Key(user='user', domain='example.com')
+    assert router.get_sender(key) is None
+    key = _Key(user='user', domain='mailrise.xyz')
+    assert router.get_sender(key) is not None
 
     file = StringIO("""
         configs:
@@ -164,8 +177,10 @@ def test_fnmatch_config_keys() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, file)
-    key = Key(user='user', domain='example.com')
-    assert mrise.get_sender(key) is not None
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    key = _Key(user='user', domain='example.com')
+    assert router.get_sender(key) is not None
 
     file = StringIO("""
         configs:
@@ -174,10 +189,12 @@ def test_fnmatch_config_keys() -> None:
               - json://localhost
     """)
     mrise = load_config(_logger, file)
-    key = Key(user='user', domain='example.com')
-    assert mrise.get_sender(key) is None
-    key = Key(user='thequickbrownfox', domain='example.com')
-    assert mrise.get_sender(key) is not None
+    router = mrise.router
+    assert isinstance(router, SimpleRouter)
+    key = _Key(user='user', domain='example.com')
+    assert router.get_sender(key) is None
+    key = _Key(user='thequickbrownfox', domain='example.com')
+    assert router.get_sender(key) is not None
 
 
 def test_authenticator() -> None:
@@ -222,12 +239,15 @@ def test_env_var() -> None:
         ]
         for file in files:
             mrise = load_config(_logger, file)
-            assert len(mrise.senders) == 1
-            key = Key(user='test')
-            sender = mrise.get_sender(key)
+            router = mrise.router
+            assert isinstance(router, SimpleRouter)
+            assert len(router.senders) == 1
+            key = _Key(user='test')
+            sender = router.get_sender(key)
             assert sender is not None
+            notifier = _make_notifier(sender.config_yaml)
             # Missing type annotation for this property as of Dec 2022.
-            ap_servers = sender.notifier.servers  # type: ignore
+            ap_servers = notifier.servers  # type: ignore
             assert len(ap_servers) == 1
             config = ap_servers[0]
             servers = config.servers()
@@ -242,3 +262,9 @@ def test_env_var() -> None:
                 - !env_var error
         """)
         load_config(_logger, file)
+
+
+def _make_notifier(config: str):
+    ap_config = AppriseConfig()
+    ap_config.add_config(config, format='yaml')
+    return Apprise(ap_config)
