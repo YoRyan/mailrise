@@ -5,6 +5,7 @@ Routers process email messages and produce notifications.
 import os
 import typing as typ
 from abc import ABCMeta, abstractmethod
+from email.message import EmailMessage as StdlibEmailMessage
 from logging import Logger
 
 from apprise import AppriseAsset, NotifyFormat
@@ -65,14 +66,19 @@ class EmailMessage(typ.NamedTuple):
     """Represents an email accepted for notifying.
 
     Attributes:
+        email_message: The raw, unprocessed email message as represented by the
+            Python standard library.
         subject: The email subject.
         from_: The email sender address.
+        to: The list of addresses the email is addressed to.
         body: The contents of the email.
         body_format: The type of the contents of the email.
         attachments: The email attachments.
     """
+    email_message: StdlibEmailMessage
     subject: str
     from_: str
+    to: typ.List[str]
     body: str
     body_format: NotifyFormat
     attachments: typ.List[EmailAttachment]
@@ -107,8 +113,7 @@ class Router(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
     """A pluggable module that dispatches emails."""
 
     @abstractmethod
-    async def email_to_apprise(self, logger: Logger,
-                               email: EmailMessage, recipients: typ.List[str]) \
+    async def email_to_apprise(self, logger: Logger, email: EmailMessage) \
             -> typ.AsyncGenerator[AppriseNotification, None]:
         """Converts an email into one or multiple Apprise notifications."""
         # Needed to pass mypy, which fails to realize this is an async generator.

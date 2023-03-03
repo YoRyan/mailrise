@@ -9,7 +9,7 @@ import email.policy
 import os
 import typing as typ
 from email import contentmanager
-from email.message import EmailMessage as SMTPEmail
+from email.message import EmailMessage as StdlibEmailMessage
 from email.parser import BytesParser
 from tempfile import NamedTemporaryFile
 
@@ -42,9 +42,9 @@ class UnreadableMultipart(Exception):
     Attributes:
         message: The multipart email part.
     """
-    message: SMTPEmail
+    message: StdlibEmailMessage
 
-    def __init__(self, message: SMTPEmail) -> None:
+    def __init__(self, message: StdlibEmailMessage) -> None:
         super().__init__(self)
         self.message = message
 
@@ -73,9 +73,9 @@ class AppriseHandler(typ.NamedTuple):
         assert isinstance(envelope.content, bytes)
         parser = BytesParser(policy=email.policy.default)
         message = parser.parsebytes(envelope.content)
-        assert isinstance(message, SMTPEmail)
+        assert isinstance(message, StdlibEmailMessage)
         try:
-            notification = _parsemessage(message)
+            notification = _parsemessage(message, envelope)
         except UnreadableMultipart as mpe:
             subparts = \
                 ' '.join(part.get_content_type() for part in mpe.message.iter_parts())
@@ -85,9 +85,8 @@ class AppriseHandler(typ.NamedTuple):
 
         try:
             to_send = [data async for data in self.config.router.email_to_apprise(
-                           self.config.logger,
-                           notification,
-                           envelope.rcpt_tos
+                           logger=self.config.logger,
+                           email=notification,
                        )]
         except Exception as e:  # pylint: disable=broad-except
             return f'450 router had internal exception: {e}'
@@ -105,7 +104,7 @@ class AppriseHandler(typ.NamedTuple):
         return '250 OK'
 
 
-def _parsemessage(msg: SMTPEmail) -> r.EmailMessage:
+def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope) -> r.EmailMessage:
     """Parses an email message into an `EmailNotification`.
 
     Args:
@@ -116,8 +115,8 @@ def _parsemessage(msg: SMTPEmail) -> r.EmailMessage:
     """
     py_body_part = msg.get_body()
     body: typ.Optional[tuple[str, apprise.NotifyFormat]]
-    if isinstance(py_body_part, SMTPEmail):
-        body_part: SMTPEmail
+    if isinstance(py_body_part, StdlibEmailMessage):
+        body_part: StdlibEmailMessage
         try:
             py_body_part.get_content()
         except KeyError:  # stdlib failed to read the content, which means multipart
@@ -131,10 +130,12 @@ def _parsemessage(msg: SMTPEmail) -> r.EmailMessage:
     else:
         body = None
     attachments = [_parseattachment(part) for part in msg.iter_attachments()
-                   if isinstance(part, SMTPEmail)]
+                   if isinstance(part, StdlibEmailMessage)]
     return r.EmailMessage(
+        email_message=msg,
         subject=msg.get('Subject', '[no subject]'),
         from_=msg.get('From', '[no sender]'),
+        to=envelope.rcpt_tos,
         # Apprise will fail if no body is supplied.
         body=body[0] if body else '[no body]',
         body_format=body[1] if body else apprise.NotifyFormat.TEXT,
@@ -142,7 +143,7 @@ def _parsemessage(msg: SMTPEmail) -> r.EmailMessage:
     )
 
 
-def _getmultiparttext(msg: SMTPEmail) -> SMTPEmail:
+def _getmultiparttext(msg: StdlibEmailMessage) -> StdlibEmailMessage:
     """Search for the textual body part of a multipart email."""
     content_type = msg.get_content_type()
     if content_type in ('multipart/related', 'multipart/alternative'):
@@ -151,7 +152,7 @@ def _getmultiparttext(msg: SMTPEmail) -> SMTPEmail:
         for parttype in ('multipart/alternative', 'multipart/related',
                          'text/html', 'text/plain'):
             found = \
-                next((p for p in parts if isinstance(p, SMTPEmail)
+                next((p for p in parts if isinstance(p, StdlibEmailMessage)
                      and p.get_content_type() == parttype), None)
             if found is not None:
                 return _getmultiparttext(found)
@@ -159,7 +160,7 @@ def _getmultiparttext(msg: SMTPEmail) -> SMTPEmail:
     return msg
 
 
-def _parseattachment(part: SMTPEmail) -> r.EmailAttachment:
+def _parseattachment(part: StdlibEmailMessage) -> r.EmailAttachment:
     return r.EmailAttachment(data=part.get_content(), filename=part.get_filename(''))
 
 

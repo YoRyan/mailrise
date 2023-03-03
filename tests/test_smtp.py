@@ -6,6 +6,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 import apprise
+from aiosmtpd.smtp import Envelope
 
 from mailrise.smtp import _parsemessage
 
@@ -16,7 +17,7 @@ def test_parsemessage() -> None:
     msg.set_content('Hello, World!')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = _parsemessage(msg)
+    notification = _parsemessage(msg, Envelope())
     assert notification.subject == 'Test Message'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
@@ -24,7 +25,7 @@ def test_parsemessage() -> None:
     msg = EmailMessage()
     msg.set_content('Hello, World!')
     msg.add_alternative('Hello, <strong>World!</strong>', subtype='html')
-    notification = _parsemessage(msg)
+    notification = _parsemessage(msg, Envelope())
     assert notification.subject == '[no subject]'
     assert notification.from_ == '[no sender]'
     assert notification.body == 'Hello, <strong>World!</strong>'
@@ -41,7 +42,7 @@ def test_multipart() -> None:
     msg.add_related(img_data, maintype='image', subtype='jpeg')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = _parsemessage(msg)
+    notification = _parsemessage(msg, Envelope())
     assert notification.subject == 'Test Message'
     assert notification.body == 'Hello, World!'
     assert notification.body_format == apprise.NotifyFormat.TEXT
@@ -51,7 +52,7 @@ def test_multipart() -> None:
     msg.add_alternative('<strong>Hello, World!</strong>', subtype='html')
     msg['From'] = ''
     msg['Subject'] = 'Test Message'
-    notification = _parsemessage(msg)
+    notification = _parsemessage(msg, Envelope())
     assert notification.subject == 'Test Message'
     assert notification.body == '<strong>Hello, World!</strong>'
     assert notification.body_format == apprise.NotifyFormat.HTML
@@ -73,7 +74,7 @@ def test_parseattachments() -> None:
         subtype='jpeg',
         filename=img_name
     )
-    notification = _parsemessage(msg)
+    notification = _parsemessage(msg, Envelope())
     assert notification.subject == 'Now With Images'
     assert notification.from_ == 'sender@example.com'
     assert notification.body == 'Hello, World!'
@@ -98,7 +99,7 @@ def test_parseattachments() -> None:
         subtype='jpeg',
         filename=f'2_{img_name}'
     )
-    notification = _parsemessage(msg)
+    notification = _parsemessage(msg, Envelope())
     assert notification.subject == 'Now With Images'
     assert notification.from_ == 'sender@example.com'
     assert notification.body == 'Hello, World!'

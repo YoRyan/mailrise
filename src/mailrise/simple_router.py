@@ -108,10 +108,9 @@ class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
         super().__init__()
         self.senders = senders
 
-    async def email_to_apprise(self, logger: Logger,
-                               email: r.EmailMessage, recipients: typ.List[str]) \
+    async def email_to_apprise(self, logger: Logger, email: r.EmailMessage) \
             -> typ.AsyncGenerator[r.AppriseNotification, None]:
-        for addr in recipients:
+        for addr in email.to:
             try:
                 rcpt = _parsercpt(addr)
             except ValueError:
