@@ -99,14 +99,14 @@ class AppriseNotification(typ.NamedTuple):
         notify_type: The class of notification (info/success/warning/failure).
         attachments: A list of attachments to send with the notification.
     """
-    asset: AppriseAsset | None
     config: str
-    config_format: typ.Literal['text', 'yaml'] | None
     title: str
     body: str
-    body_format: NotifyFormat
-    notify_type: NotifyType
-    attachments: typ.List[EmailAttachment]
+    notify_type: NotifyType = NotifyType.INFO
+    body_format: NotifyFormat = NotifyFormat.TEXT
+    attachments: typ.List[EmailAttachment] = []
+    config_format: typ.Literal['text', 'yaml'] | None = None
+    asset: AppriseAsset | None = None
 
 
 class Router(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
@@ -118,13 +118,4 @@ class Router(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
         """Converts an email into one or multiple Apprise notifications."""
         # Needed to pass mypy, which fails to realize this is an async generator.
         # See https://github.com/python/mypy/issues/5070
-        yield AppriseNotification(
-            asset=None,
-            config='',
-            config_format=None,
-            title='',
-            body='',
-            body_format=NotifyFormat.TEXT,
-            notify_type=NotifyType.INFO,
-            attachments=[]
-        )
+        yield AppriseNotification(config='', title='', body='')

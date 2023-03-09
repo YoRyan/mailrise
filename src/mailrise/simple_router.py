@@ -130,7 +130,6 @@ class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
                 'type': rcpt.notify_type
             }
             yield r.AppriseNotification(
-                asset=None,
                 config=sender.config_yaml,
                 config_format='yaml',
                 title=sender.title_template.safe_substitute(mapping),
