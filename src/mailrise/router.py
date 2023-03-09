@@ -88,16 +88,16 @@ class AppriseNotification(typ.NamedTuple):
     """Encapsulates the information needed to submit a notification to Apprise.
 
     Attributes:
-        asset: The Apprise asset, which controls the icon sent with the
-            notification. If None, use some flavor of the Mailrise logo.
         config: The Apprise configuration file to use, as a string.
-        config_format: The format of the configuration file. If None, Apprise
-            will autodetect (with some slight overhead).
         title: The notification title.
         body: The notification body.
-        body_format: The content type (text/html/markdown) of the body.
         notify_type: The class of notification (info/success/warning/failure).
+        body_format: The content type (text/html/markdown) of the body.
         attachments: A list of attachments to send with the notification.
+        config_format: The format of the configuration file. If None, Apprise
+            will autodetect (with some slight overhead).
+        asset: The Apprise asset, which controls the icon sent with the
+            notification. If None, use some flavor of the Mailrise logo.
     """
     config: str
     title: str
