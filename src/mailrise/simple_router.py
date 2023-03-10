@@ -87,11 +87,16 @@ class _SimpleSender(typ.NamedTuple):
         body_template: The template string for notification body texts.
         body_format: The content type for notifications. If None, this will be
             auto-detected from the body parts of emails.
+        body_pattern: A regular expression where text in the email body that
+            matches this pattern will be used as the $body variable for
+            body_template.
+
     """
     config_yaml: str
     title_template: Template
     body_template: Template
     body_format: typ.Optional[apprise.NotifyFormat]
+    body_pattern: typ.Optional[str]
 
 
 class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
@@ -121,10 +126,18 @@ class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
                 logger.error('Recipient is not configured: %s', addr)
                 continue
 
+            email_body = email.body
+
+            if sender.body_pattern is not None:
+                matched_body = re.search(sender.body_pattern, email_body, re.IGNORECASE | re.MULTILINE)
+                if matched_body is None:
+                    raise ValueError("No matches found for pattern: " + sender.body_pattern)
+                email_body = matched_body.group(0)
+
             mapping = {
                 'subject': email.subject,
                 'from': email.from_,
-                'body': email.body,
+                'body': email_body,
                 'to': str(rcpt.key),
                 'config': rcpt.key.as_configured(),
                 'type': rcpt.notify_type
@@ -187,6 +200,7 @@ def _load_simple_sender(config: dict[str, typ.Any]) -> _SimpleSender:
     title_template = mr_config.get('title_template', '$subject ($from)')
     body_template = mr_config.get('body_template', '$body')
     body_format = mr_config.get('body_format', None)
+    body_pattern = mr_config.get('body_pattern', None)
     if not any(body_format == c for c in (None,
                                           apprise.NotifyFormat.TEXT,
                                           apprise.NotifyFormat.HTML,
@@ -197,5 +211,6 @@ def _load_simple_sender(config: dict[str, typ.Any]) -> _SimpleSender:
         config_yaml=yaml.safe_dump(config),
         title_template=Template(title_template),
         body_template=Template(body_template),
-        body_format=body_format
+        body_format=body_format,
+        body_pattern=body_pattern
     )
