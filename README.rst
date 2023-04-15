@@ -180,8 +180,9 @@ configs.<name>.mailrise.body_format    string     Sets the data type for notific
                                                   default value of ``$body``, you might want to set a data type here.
 import_code                            string     Allows advanced users to supply their own Python code to replace key
                                                   components of Mailrise. Place the path to the Python source file here.
-                                                  See "Custom routers" below. Custom routers ignore any data in the
-                                                  ``configs`` section.
+                                                  See "Custom routers and authenticators" below. Custom routers ignore any
+                                                  data in the ``configs`` section, and custom authenticators ignore any
+                                                  data in the ``smtp.auth`` section.
 listen.host                            string     Specifies the network address to listen on.
 
                                                   Defaults to all interfaces.
@@ -367,16 +368,22 @@ traefik.yml:
 SMTP clients can then connect to my.public.mailrise.domain.com, on port 465,
 using the TLS-on-connect mode.
 
-Custom routers
---------------
+Custom routers and authenticators
+---------------------------------
 
 If you are handy with Python and want to overcome the limitations of the
-recipient/template strings system, you can replace Mailrise's notification
-routing logic with your own. Use the ``import_code`` directive in your
-configuration file with the path to a Python source file. The router class
-should be stored in a module-level variable named ``router``. Refer to the
-`sample file
-<https://github.com/YoRyan/mailrise/blob/main/tests/noop_pluggable.py>`_ and the
-`Mailrise API
-<https://github.com/YoRyan/mailrise/blob/main/src/mailrise/router.py>`_
-for further details.
+configuration format, you can replace Mailrise's notification
+routing and authenticator logic with your own. Use the ``import_code`` directive
+in your configuration file with the path to a Python source file.
+
+The router class, if provided, should be stored in a module-level variable named
+``router``. The authenticator callback, if provided, should be stored in a
+module-level variable named ``authenticator``.
+
+For further details, refer to the
+`sample file used for testing
+<https://github.com/YoRyan/mailrise/blob/main/tests/noop_pluggable.py>`_, the
+`Mailrise router API
+<https://github.com/YoRyan/mailrise/blob/main/src/mailrise/router.py>`_, and
+the `aiosmtpd authenticator callback
+<https://aiosmtpd.readthedocs.io/en/latest/auth.html#authenticator-callback>`_.
