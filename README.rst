@@ -91,7 +91,28 @@ As a Docker container
 
 An official Docker image is available
 `from Docker Hub <https://hub.docker.com/r/yoryan/mailrise>`_. To use it, you
-must bind mount a configuration file to ``/etc/mailrise.conf``.
+must bind mount a configuration file to ``/etc/mailrise.conf``. This mount must
+be a *file*, not a directory, and it cannot override anything else in /etc.
+
+Notes for NAS users
+^^^^^^^^^^^^^^^^^^^
+
+Consumer NAS operating systems often conceal Docker's controls behind a GUI that
+is opaque and difficult to troubleshoot. There are some known gotchas when using
+Mailrise with one:
+
+* Unraid can only passthrough directories, not files, making it impossible to
+  bind mount the mailrise.conf file. (While attempting to do so, some users have
+  accidentally passed through their entire /etc directory, thereby completely
+  breaking Python.) To fix this, `override
+  <https://docs.docker.com/compose/compose-file/compose-file-v3/#command>`_ the
+  image's default command with something like ``-v /etc/myconfig/mailrise.conf``
+  so you can passthrough the ``myconfig`` directory without interfering with the
+  rest of the filesystem.
+* TrueNAS SCALE runs containers as root by default. This breaks Mailrise, which
+  is designed to run as a non-root container for enhanced security. Ensure the
+  container is running as user ``999`` and group ``999``.
+
 
 From PyPI
 ---------
