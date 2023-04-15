@@ -4,7 +4,7 @@ This is the authentication functionality for the SMTP server.
 
 import typing as typ
 
-from aiosmtpd.smtp import AuthResult, Envelope, LoginPassword, Session, SMTP
+from aiosmtpd import smtp
 
 
 class BasicAuthenticator(typ.NamedTuple):
@@ -13,21 +13,18 @@ class BasicAuthenticator(typ.NamedTuple):
     logins: typ.Mapping[str, str]
 
     # pylint: disable=too-many-arguments
-    def __call__(self, server: SMTP, session: Session, envelope: Envelope,
-                 mechanism: str, auth_data: LoginPassword):
-        fail_nothandled = AuthResult(success=False, handled=False)
+    def __call__(self, server: smtp.SMTP, session: smtp.Session,
+                 envelope: smtp.Envelope, mechanism: str, auth_data: typ.Any):
+        fail_nothandled = smtp.AuthResult(success=False, handled=False)
         if mechanism not in ("LOGIN", "PLAIN"):
             return fail_nothandled
-        if not isinstance(auth_data, LoginPassword):
+        if not isinstance(auth_data, smtp.LoginPassword):
             return fail_nothandled
 
         username = auth_data.login.decode("utf-8")
         password = auth_data.password.decode("utf-8")
         success = self.logins.get(username) == password
-        return AuthResult(success=success)
+        return smtp.AuthResult(success=success)
 
     def __str__(self) -> str:
         return f'Basic({len(self.logins)})'
-
-
-Authenticator = BasicAuthenticator

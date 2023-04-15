@@ -9,7 +9,7 @@ import pytest
 from apprise import Apprise, AppriseConfig, NotifyFormat
 from pytest import MonkeyPatch
 
-from mailrise.authenticator import BasicAuthenticator
+from mailrise.basic_authenticator import BasicAuthenticator
 from mailrise.config import load_config
 from mailrise.simple_router import _Key, SimpleRouter
 

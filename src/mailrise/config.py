@@ -14,8 +14,9 @@ from logging import Logger
 from typing import NamedTuple
 
 import yaml
+from aiosmtpd.smtp import AuthenticatorType
 
-from mailrise.authenticator import Authenticator, BasicAuthenticator
+from mailrise.basic_authenticator import BasicAuthenticator
 from mailrise.router import Router
 from mailrise.simple_router import load_from_yaml as load_simple_router
 
@@ -81,7 +82,7 @@ class MailriseConfig(NamedTuple):
     tls_keyfile: typ.Optional[str]
     smtp_hostname: typ.Optional[str]
     router: Router
-    authenticator: typ.Optional[Authenticator]
+    authenticator: typ.Optional[AuthenticatorType]
 
 
 class MailriseImportedCode(NamedTuple):
@@ -91,8 +92,10 @@ class MailriseImportedCode(NamedTuple):
 
     Attributes:
         router: The custom router, if supplied.
+        authenticator: The custom authenticator, if supplied.
     """
     router: typ.Optional[Router] = None
+    authenticator: typ.Optional[AuthenticatorType] = None
 
 
 def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
@@ -129,6 +132,7 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     yml_smtp = yml.get('smtp', {})
 
     router = None
+    authenticator = None
     yml_import_path = yml.get('import_code', None)
     if yml_import_path:
         logger.info('Importing configurable Python code from: %s', yml_import_path)
@@ -136,8 +140,13 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
         if imported.router:
             logger.info('Discovered a custom router')
             router = imported.router
+        if imported.authenticator:
+            logger.info('Discovered a custom authenticator')
+            authenticator = imported.authenticator
     if not router:
         router = load_simple_router(logger, yml.get('configs', {}))
+    if not authenticator:
+        authenticator = _load_authenticator(yml_smtp.get('auth', {}))
 
     return MailriseConfig(
         logger=logger,
@@ -148,7 +157,7 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
         tls_keyfile=tls_keyfile,
         smtp_hostname=yml_smtp.get('hostname', None),
         router=router,
-        authenticator=_load_authenticator(yml_smtp.get('auth', {}))
+        authenticator=authenticator
     )
 
 
@@ -169,10 +178,10 @@ def _load_imported_code(logger: Logger, file_path: str) -> MailriseImportedCode:
     return typ.cast(MailriseImportedCode, module)
 
 
-def _load_authenticator(config: dict[str, typ.Any]) -> typ.Optional[Authenticator]:
+def _load_authenticator(config: dict[str, typ.Any]) -> typ.Optional[AuthenticatorType]:
     if 'basic' in config and isinstance(config['basic'], dict):
         logins = {str(username): str(password)
                   for username, password in config['basic'].items()}
-        return BasicAuthenticator(logins=logins)
+        return typ.cast(AuthenticatorType, BasicAuthenticator(logins=logins))
 
     return None
