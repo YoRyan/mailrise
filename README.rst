@@ -178,6 +178,10 @@ configs.<name>.mailrise.body_format    string     Sets the data type for notific
                                                   If not specified here, the data type is inferred from the body part of the
                                                   email message. So if you have your body template set to anything but the
                                                   default value of ``$body``, you might want to set a data type here.
+import_code                            string     Allows advanced users to supply their own Python code to replace key
+                                                  components of Mailrise. Place the path to the Python source file here.
+                                                  See "Custom routers" below. Custom routers ignore any data in the
+                                                  ``configs`` section.
 listen.host                            string     Specifies the network address to listen on.
 
                                                   Defaults to all interfaces.
@@ -362,3 +366,17 @@ traefik.yml:
 
 SMTP clients can then connect to my.public.mailrise.domain.com, on port 465,
 using the TLS-on-connect mode.
+
+Custom routers
+--------------
+
+If you are handy with Python and want to overcome the limitations of the
+recipient/template strings system, you can replace Mailrise's notification
+routing logic with your own. Use the ``import_code`` directive in your
+configuration file with the path to a Python source file. The router class
+should be stored in a module-level variable named ``router``. Refer to the
+`sample file
+<https://github.com/YoRyan/mailrise/blob/main/tests/noop_pluggable.py>`_ and the
+`Mailrise API
+<https://github.com/YoRyan/mailrise/blob/main/src/mailrise/router.py>`_
+for further details.
