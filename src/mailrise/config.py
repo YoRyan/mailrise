@@ -4,6 +4,7 @@ This is the YAML configuration parser for Mailrise.
 
 from __future__ import annotations
 
+import importlib.util
 import io
 import os
 import typing as typ
@@ -83,6 +84,17 @@ class MailriseConfig(NamedTuple):
     authenticator: typ.Optional[Authenticator]
 
 
+class MailriseImportedCode(NamedTuple):
+    """The pluggable Python code for a Mailrise instance when imported as a
+    Python module. Of course, the actual result will be a module rather than
+    a named tuple, but we can expect it to share these attributes.
+
+    Attributes:
+        router: The custom router, if supplied.
+    """
+    router: typ.Optional[Router] = None
+
+
 def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     """Loads configuration data from a YAML file.
 
@@ -116,7 +128,16 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
 
     yml_smtp = yml.get('smtp', {})
 
-    router = load_simple_router(logger, yml.get('configs', {}))
+    router = None
+    yml_import_path = yml.get('import_code', None)
+    if yml_import_path:
+        logger.info('Importing configurable Python code from: %s', yml_import_path)
+        imported = _load_imported_code(logger, yml_import_path)
+        if imported.router:
+            logger.info('Discovered a custom router')
+            router = imported.router
+    if not router:
+        router = load_simple_router(logger, yml.get('configs', {}))
 
     return MailriseConfig(
         logger=logger,
@@ -129,6 +150,23 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
         router=router,
         authenticator=_load_authenticator(yml_smtp.get('auth', {}))
     )
+
+
+def _load_imported_code(logger: Logger, file_path: str) -> MailriseImportedCode:
+    spec = importlib.util.spec_from_file_location(os.path.basename(file_path), file_path)
+    if not (spec and spec.loader):
+        logger.critical(
+            'Nonexistent path or invalid Python when importing code from: %s', file_path)
+        raise SystemExit(1)
+
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.critical('Exception when importing code from: %s', file_path, exc_info=True)
+        raise SystemExit(1) from exc
+
+    return typ.cast(MailriseImportedCode, module)
 
 
 def _load_authenticator(config: dict[str, typ.Any]) -> typ.Optional[Authenticator]:
