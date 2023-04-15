@@ -10,7 +10,7 @@ from apprise import Apprise, AppriseConfig, NotifyFormat
 from pytest import MonkeyPatch
 
 from mailrise.authenticator import BasicAuthenticator
-from mailrise.config import ConfigFileError, load_config
+from mailrise.config import load_config
 from mailrise.simple_router import _Key, SimpleRouter
 
 
@@ -19,17 +19,17 @@ _logger = logging.getLogger(__name__)
 
 def test_errors() -> None:
     """Tests for :fun:`load_config`'s failure conditions."""
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
             24
         """)
         load_config(_logger, file)
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
             configs: 24
         """)
         load_config(_logger, file)
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
             configs:
               test: 24
@@ -108,7 +108,7 @@ def test_mailrise_options() -> None:
     assert sender.title_template.template == ''
     assert sender.body_format == NotifyFormat.TEXT
 
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
             configs:
               test:
@@ -122,7 +122,7 @@ def test_mailrise_options() -> None:
 
 def test_config_keys() -> None:
     """Tests the config key parser with both string and full email formats."""
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
             configs:
               has.periods:
@@ -130,7 +130,7 @@ def test_config_keys() -> None:
                   - json://localhost
         """)
         load_config(_logger, file)
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
             configs:
               bademail@:
@@ -254,7 +254,7 @@ def test_env_var() -> None:
             assert len(servers) == 1
             assert servers[0].url().startswith('json://localhost')
 
-    with pytest.raises(ConfigFileError):
+    with pytest.raises(SystemExit):
         file = StringIO("""
           configs:
             test:

@@ -16,7 +16,7 @@ from functools import partial
 from aiosmtpd.controller import UnthreadedController
 
 from mailrise import __version__
-from mailrise.config import ConfigFileError, TLSMode, load_config
+from mailrise.config import TLSMode, load_config
 from mailrise.smtp import AppriseHandler
 
 __author__ = "Ryan Young"
@@ -104,11 +104,7 @@ def main(args: list[str]) -> None:
     pargs = parse_args(args)
     setup_logging(pargs.loglevel)
 
-    try:
-        config = load_config(_logger, pargs.config)
-    except ConfigFileError as err:
-        _logger.critical('Error loading configuration file: %s', err.message)
-        return
+    config = load_config(_logger, pargs.config)
 
     tls: typ.Optional[ssl.SSLContext] = None
     tls_mode = config.tls_mode

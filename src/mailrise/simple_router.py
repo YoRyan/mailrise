@@ -12,7 +12,7 @@ import typing as typ
 import apprise
 import yaml
 
-import mailrise.router as r
+from mailrise.router import AppriseNotification, EmailMessage, Router
 
 
 class _Key(typ.NamedTuple):
@@ -94,7 +94,7 @@ class _SimpleSender(typ.NamedTuple):
     body_format: typ.Optional[apprise.NotifyFormat]
 
 
-class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
+class SimpleRouter(Router):  # pylint: disable=too-few-public-methods
     """A router that uses the rules in the YAML configuration file.
 
     Attributes:
@@ -108,8 +108,8 @@ class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
         super().__init__()
         self.senders = senders
 
-    async def email_to_apprise(self, logger: Logger, email: r.EmailMessage) \
-            -> typ.AsyncGenerator[r.AppriseNotification, None]:
+    async def email_to_apprise(self, logger: Logger, email: EmailMessage) \
+            -> typ.AsyncGenerator[AppriseNotification, None]:
         for addr in email.to:
             try:
                 rcpt = _parsercpt(addr)
@@ -129,7 +129,7 @@ class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
                 'config': rcpt.key.as_configured(),
                 'type': rcpt.notify_type
             }
-            yield r.AppriseNotification(
+            yield AppriseNotification(
                 config=sender.config_yaml,
                 config_format='yaml',
                 title=sender.title_template.safe_substitute(mapping),
@@ -151,35 +151,40 @@ class SimpleRouter(r.Router):  # pylint: disable=too-few-public-methods
 def load_from_yaml(logger: Logger, configs_node: dict[str, typ.Any]) -> SimpleRouter:
     """Load a simple router from the YAML configs node."""
     if not isinstance(configs_node, dict):
-        raise r.ConfigFileError("'configs' node not a mapping")
+        logger.critical('The configs node is not a YAML mapping')
+        raise SystemExit(1)
     router = SimpleRouter(
-        senders=[(_parse_simple_key(key), _load_simple_sender(config))
+        senders=[(_parse_simple_key(logger, key), _load_simple_sender(logger, key, config))
                  for key, config in configs_node.items()]
     )
     if len(router.senders) < 1:
-        raise r.ConfigFileError('no Apprise targets configured')
+        logger.critical('No Apprise targets are configured')
+        raise SystemExit(1)
     logger.info('Loaded configuration with %d recipient(s)', len(router.senders))
     return router
 
 
-def _parse_simple_key(key: str) -> _Key:
-    def err():
-        return r.ConfigFileError(f"invalid config key '{key}'; should be a string or "
-                                 "an email address without periods in the username")
+def _parse_simple_key(logger: Logger, key: str) -> _Key:
+    def fatal():
+        logger.critical(
+            "Invalid config key '%s'; should be a string or an email address "
+            'without periods in the username')
+        raise SystemExit(1)
     if '@' in key:
         user, domain = _parseaddrparts(key)
         if not user or not domain or '.' in user:
-            raise err()
+            fatal()
         return _Key(user=user, domain=domain.lower())
     if '.' in key:
-        raise err()
+        fatal()
 
     return _Key(user=key)
 
 
-def _load_simple_sender(config: dict[str, typ.Any]) -> _SimpleSender:
+def _load_simple_sender(logger: Logger, key: str, config: dict[str, typ.Any]) -> _SimpleSender:
     if not isinstance(config, dict):
-        raise r.ConfigFileError("apprise config node not a mapping")
+        logger.critical("YAML config node '%s' is not a mapping", key)
+        raise SystemExit(1)
 
     # Extract Mailrise-specific values.
     mr_config = config.get('mailrise', {})
@@ -191,7 +196,8 @@ def _load_simple_sender(config: dict[str, typ.Any]) -> _SimpleSender:
                                           apprise.NotifyFormat.TEXT,
                                           apprise.NotifyFormat.HTML,
                                           apprise.NotifyFormat.MARKDOWN)):
-        raise r.ConfigFileError(f"invalid apprise notification format: {body_format}")
+        logger.critical('Invalid Apprise notification format: %s', body_format)
+        raise SystemExit(1)
 
     return _SimpleSender(
         config_yaml=yaml.safe_dump(config),

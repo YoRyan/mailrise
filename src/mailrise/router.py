@@ -38,19 +38,6 @@ DEFAULT_ASSET = AppriseAsset(
 )
 
 
-class ConfigFileError(Exception):
-    """Exception raised for invalid configuration files.
-
-    Attributes:
-        message: The reason the configuration file is invalid.
-    """
-    message: str
-
-    def __init__(self, message: str) -> None:
-        super().__init__(self)
-        self.message = message
-
-
 class EmailAttachment(typ.NamedTuple):
     """Represents an email attachment.
 

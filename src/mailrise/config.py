@@ -15,7 +15,7 @@ from typing import NamedTuple
 import yaml
 
 from mailrise.authenticator import Authenticator, BasicAuthenticator
-from mailrise.router import ConfigFileError, Router
+from mailrise.router import Router
 from mailrise.simple_router import load_from_yaml as load_simple_router
 
 
@@ -44,8 +44,9 @@ class ConfigFileLoader(yaml.FullLoader):  # pylint: disable=too-many-ancestors
                 'Environment variable %s not defined, using default value: %s',
                 env, default)
             return default
-        raise ConfigFileError(
-            f'Environment variable {env} not defined and no default value provided')
+        loader.logger.critical(
+            'Environment variable %s not defined and no default value provided', env)
+        raise SystemExit(1)
 
 
 class TLSMode(Enum):
@@ -91,27 +92,27 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
 
     Returns:
         The `MailriseConfig` instance.
-
-    Raises:
-        ConfigFileError: The configuration file is invalid.
     """
     yml = yaml.load(
         file, Loader=partial(ConfigFileLoader, logger=logger))  # type: ignore
     if not isinstance(yml, dict):
-        raise ConfigFileError("root node not a mapping")
+        logger.critical('YAML root node is not a mapping')
+        raise SystemExit(1)
 
     yml_listen = yml.get('listen', {})
 
     yml_tls = yml.get('tls', {})
+    yml_tls_mode = yml_tls.get('mode', 'off').upper()
     try:
-        tls_mode = TLSMode[yml_tls.get('mode', 'off').upper()]
-    except KeyError as key_err:
-        raise ConfigFileError('invalid TLS operating mode') from key_err
+        tls_mode = TLSMode[yml_tls_mode]
+    except KeyError as exc:
+        logger.critical('Invalid TLS operating mode: %s', yml_tls_mode)
+        raise SystemExit(1) from exc
     tls_certfile = yml_tls.get('certfile', None)
     tls_keyfile = yml_tls.get('keyfile', None)
     if tls_mode != TLSMode.OFF and not (tls_certfile and tls_keyfile):
-        raise ConfigFileError(
-            'TLS enabled, but certificate and key files not specified')
+        logger.critical('TLS enabled, but certificate and key files not specified')
+        raise SystemExit(1)
 
     yml_smtp = yml.get('smtp', {})
 
