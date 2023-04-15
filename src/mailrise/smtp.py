@@ -88,8 +88,8 @@ class AppriseHandler(typ.NamedTuple):
                            logger=self.config.logger,
                            email=notification,
                        )]
-        except Exception as e:  # pylint: disable=broad-except
-            return f'450 router had internal exception: {e}'
+        except Exception as exc:  # pylint: disable=broad-except
+            return f'450 router had internal exception: {exc}'
 
         results = await asyncio.gather(
             *(_apprise_notify(self.config, data) for data in to_send),
