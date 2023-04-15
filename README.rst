@@ -373,8 +373,8 @@ Custom routers and authenticators
 
 If you are handy with Python and want to overcome the limitations of the
 configuration format, you can replace Mailrise's notification
-routing and authenticator logic with your own. Use the ``import_code`` directive
-in your configuration file with the path to a Python source file.
+routing and SMTP authentication logic with your own. Use the ``import_code``
+directive in your configuration file with the path to a Python source file.
 
 The router class, if provided, should be stored in a module-level variable named
 ``router``. The authenticator callback, if provided, should be stored in a
