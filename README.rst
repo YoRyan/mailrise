@@ -41,7 +41,7 @@ conventional SMTP server, it's more secure, too—no more replicating your Gmail
 password to each of your Linux boxes!
 
     "After a few very negative experiences with mail providers and their
-    detection of spam accounts in the last year... Fuck email. I will never set
+    detection of spam accounts in the last year... F––k email. I will never set
     up a mail account for notifications. And with Mailrise I don't have to
     anymore!"
 
