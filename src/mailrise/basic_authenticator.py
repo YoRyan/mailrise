@@ -8,8 +8,7 @@ from aiosmtpd import smtp
 
 
 class BasicAuthenticator(typ.NamedTuple):
-    """A simple authenticator that uses a static username and password list.
-    """
+    """A simple authenticator that uses a static username and password list."""
     logins: typ.Mapping[str, str]
 
     # pylint: disable=too-many-arguments

@@ -33,7 +33,8 @@ class AppriseNotifyFailure(Exception):
     """Exception raised when Apprise fails to deliver a notification.
 
     Note: Apprise does not provide any information about the reason for the
-    failure."""
+    failure.
+    """
 
 
 class UnreadableMultipart(Exception):
