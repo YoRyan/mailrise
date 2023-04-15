@@ -100,7 +100,8 @@ class Router(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
     """A pluggable module that dispatches emails."""
 
     @abstractmethod
-    async def email_to_apprise(self, logger: Logger, email: EmailMessage) \
+    async def email_to_apprise(
+        self, logger: Logger, email: EmailMessage, auth_data: typ.Any, **kwargs) \
             -> typ.AsyncGenerator[AppriseNotification, None]:
         """Converts an email into one or multiple Apprise notifications."""
         # Needed to pass mypy, which fails to realize this is an async generator.

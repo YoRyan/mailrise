@@ -26,7 +26,7 @@ async def test_import_noop() -> None:
     mrise = load_config(_logger, file)
     router = mrise.router
     message = cast(EmailMessage, {})  # quick and dirty
-    notifications = [n async for n in router.email_to_apprise(_logger, message)]
+    notifications = [n async for n in router.email_to_apprise(_logger, message, {})]
     assert len(notifications) == 1
     notification = notifications[0]
     assert notification.title == 'Hello, World!'

@@ -87,6 +87,7 @@ class AppriseHandler(typ.NamedTuple):
             to_send = [data async for data in self.config.router.email_to_apprise(
                            logger=self.config.logger,
                            email=notification,
+                           auth_data=session.auth_data
                        )]
         except Exception as exc:  # pylint: disable=broad-except
             return f'450 router had internal exception: {exc}'

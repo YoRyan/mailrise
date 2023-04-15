@@ -4,7 +4,7 @@ A dummy custom router for testing and demonstration purposes.
 
 from logging import Logger
 from types import SimpleNamespace
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from mailrise.router import AppriseNotification, EmailMessage, Router
 
@@ -17,7 +17,8 @@ class FullyTypedNoopRouter(Router):  # pylint: disable=too-few-public-methods
     """
     A dummy custom router with full typing information.
     """
-    async def email_to_apprise(self, logger: Logger, email: EmailMessage) \
+    async def email_to_apprise(
+        self, logger: Logger, email: EmailMessage, auth_data: Any, **kwargs) \
             -> AsyncGenerator[AppriseNotification, None]:
         yield AppriseNotification(
             config='urls: ["json://localhost"]',
@@ -29,7 +30,7 @@ class EasyNoopRouter:  # pylint: disable=too-few-public-methods
     """
     A dummy custom router with the minimum required code.
     """
-    async def email_to_apprise(self, _logger, _email):
+    async def email_to_apprise(self, _logger, _email, _auth_data, **_kwargs):
         """Our replacement for email_to_apprise()."""
         # An ordinary dictionary will not work; we need dot notation access.
         yield SimpleNamespace(

@@ -108,7 +108,8 @@ class SimpleRouter(Router):  # pylint: disable=too-few-public-methods
         super().__init__()
         self.senders = senders
 
-    async def email_to_apprise(self, logger: Logger, email: EmailMessage) \
+    async def email_to_apprise(
+        self, logger: Logger, email: EmailMessage, auth_data: typ.Any, **kwargs) \
             -> typ.AsyncGenerator[AppriseNotification, None]:
         for addr in email.to:
             try:
