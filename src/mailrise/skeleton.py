@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import signal
 import ssl
 import sys
@@ -147,8 +148,15 @@ def main(args: list[str]) -> None:
         _logger.info('Caught exit signal...')
         eloop.stop()
         controller.end()
+
+    def clean_exit_nt(signal, frame):
+        clean_exit()
+
     for sig in (signal.SIGINT, signal.SIGTERM):
-        eloop.add_signal_handler(sig, clean_exit)
+        if os.name == 'nt':
+            signal.signal(sig, clean_exit_nt)
+        else:
+            eloop.add_signal_handler(sig, clean_exit)
 
     controller.begin()
     eloop.run_forever()
