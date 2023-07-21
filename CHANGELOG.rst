@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Version 1.4.0
+=============
+
+:Date: July 21, 2023
+
+- FIX: Make it possible to run Mailrise on Windows
+- Upgrade to Apprise v1.4.5
+- Add custom routers for programmable notification routing
+- Add custom authenticators for programmable authentication
+
 Version 1.3.0
 =============
 
