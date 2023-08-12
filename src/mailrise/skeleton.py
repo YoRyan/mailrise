@@ -129,6 +129,7 @@ def main(args: list[str]) -> None:
         port=config.listen_port,
         server_hostname=config.smtp_hostname,
         decode_data=False,
+        line_limit_length=2**16,
         ident=f'Mailrise {__version__}',
         tls_context=tls_starttls,
         ssl_context=tls_onconnect,
