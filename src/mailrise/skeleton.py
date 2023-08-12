@@ -13,7 +13,7 @@ import typing as typ
 from asyncio.events import new_event_loop
 from functools import partial
 
-from aiosmtpd.controller import UnthreadedController
+from aiosmtpd.controller import UnthreadedController, SMTP
 
 from mailrise import __version__
 from mailrise.config import TLSMode, load_config
@@ -117,6 +117,9 @@ def main(args: list[str]) -> None:
     tls_onconnect = tls if tls_mode == TLSMode.ONCONNECT else None
     tls_starttls = \
         tls if tls_mode in (TLSMode.STARTTLS, TLSMode.STARTTLSREQUIRE) else None
+
+    # Disable the maximum line limit before instantiating any SMTP classes.
+    SMTP.line_length_limit = 2**16
 
     makecon = partial(
         UnthreadedController,
