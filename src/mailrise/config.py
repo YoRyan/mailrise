@@ -117,7 +117,8 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
     yml_listen = yml.get('listen', {})
 
     yml_tls = yml.get('tls', {})
-    yml_tls_mode = yml_tls.get('mode', 'off').upper()
+    # "off" is a boolean value in YAML, so it will get parsed as False.
+    yml_tls_mode = (yml_tls.get('mode', False) or "off").upper()
     try:
         tls_mode = TLSMode[yml_tls_mode]
     except KeyError as exc:
