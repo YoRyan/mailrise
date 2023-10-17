@@ -82,7 +82,7 @@ class AppriseHandler(typ.NamedTuple):
                 ' '.join(part.get_content_type() for part in mpe.message.iter_parts())
             self.config.logger.error('Failed to parse %s message: [ %s ]',
                                      mpe.message.get_content_type(), subparts)
-        self.config.logger.info('Accepted email, subject: %s', notification.subject)
+        self.config.logger.info('Accepted email: %s', _logmessage(notification))
 
         try:
             to_send = [data async for data in self.config.router.email_to_apprise(
@@ -98,9 +98,7 @@ class AppriseHandler(typ.NamedTuple):
             return_exceptions=True
         )
         if any(isinstance(result, AppriseNotifyFailure) for result in results):
-            addresses = ' '.join(envelope.rcpt_tos)
-            self.config.logger.warning('Notification failed: %s ➤ %s',
-                                       notification.subject, addresses)
+            self.config.logger.warning('Notification failed: %s', _logmessage(notification))
             return '450 failed to send notification'
 
         return '250 OK'
@@ -164,6 +162,18 @@ def _getmultiparttext(msg: StdlibEmailMessage) -> StdlibEmailMessage:
 
 def _parseattachment(part: StdlibEmailMessage) -> r.EmailAttachment:
     return r.EmailAttachment(data=part.get_content(), filename=part.get_filename(''))
+
+
+def _logmessage(msg: r.EmailMessage) -> str:
+    """Abbreviate an email into one line suitable for a log message."""
+    addresses = f'{msg.from_} ➤ {", ".join(msg.to)}'
+    subject = msg.subject
+    body_abridged = (msg.body.strip().split('\n')[0])[:20]
+    body = f'{body_abridged} ({len(msg.body) / 1024:.1f}K)'
+    attachments = ', '.join(f'{a.filename} ({len(a.data) / 1024:.1f}K)' for a in msg.attachments)
+
+    attachments_field = f' attach: [ {attachments} ]' if attachments else ''
+    return f'address: [ {addresses} ] subject: [ {subject} ] body: [ {body} ]{attachments_field}'
 
 
 async def _apprise_notify(config: MailriseConfig, data: r.AppriseNotification):
