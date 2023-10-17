@@ -37,6 +37,7 @@ htmlcov/*
 junit*.xml
 coverage.xml
 .pytest_cache/
+.mypy_cache/
 
 # Build and docs folder/files
 build/*
