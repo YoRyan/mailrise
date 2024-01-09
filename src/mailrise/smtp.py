@@ -103,6 +103,17 @@ class AppriseHandler(typ.NamedTuple):
 
         return '250 OK'
 
+    # pylint: disable=invalid-name,unused-argument
+    async def handle_EHLO(self, _server: SMTP, session: Session, _envelope: Envelope,
+                          hostname: str, responses: list[str]) -> list[str]:
+        """This hook is called during ``EHLO``."""
+        if not self.config.authenticator:
+            # Workaround for SMTP clients that send MAIL FROM AUTH=<>
+            # It only works if we're not using SMTP authentication.
+            # https://github.com/aio-libs/aiosmtpd/issues/299#issuecomment-1427487291
+            session.host_name = hostname  # type: ignore
+            return [r for r in responses if not r.startswith("250-AUTH")]
+
 
 def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope) -> r.EmailMessage:
     """Parses an email message into an `EmailNotification`.
