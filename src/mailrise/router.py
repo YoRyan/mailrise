@@ -92,8 +92,8 @@ class AppriseNotification(typ.NamedTuple):
     notify_type: NotifyType = NotifyType.INFO
     body_format: NotifyFormat = NotifyFormat.TEXT
     attachments: typ.List[EmailAttachment] = []
-    config_format: typ.Literal['text', 'yaml'] | None = None
-    asset: AppriseAsset | None = None
+    config_format: typ.Union[typ.Literal['text', 'yaml'], None] = None
+    asset: typ.Union[AppriseAsset, None] = None
 
 
 class Router(metaclass=ABCMeta):  # pylint: disable=too-few-public-methods
