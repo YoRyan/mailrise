@@ -141,7 +141,7 @@ class SimpleRouter(Router):  # pylint: disable=too-few-public-methods
                 attachments=email.attachments
             )
 
-    def get_sender(self, key: _Key) -> _SimpleSender | None:
+    def get_sender(self, key: _Key) -> typ.Union[_SimpleSender, None]:
         """Find a sender by recipient key."""
         return next(
             (sender for (pattern_key, sender) in self.senders
