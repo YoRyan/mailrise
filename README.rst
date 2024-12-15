@@ -210,6 +210,9 @@ listen.host                            string     Specifies the network address 
 listen.port                            number     Specifies the network port to listen on.
 
                                                   Defaults to 8025.
+prefer_plain                           bool       Prefer the plain text email type over html (when available).
+
+                                                  Defaults to True.
 tls.mode                               string     Selects the operating mode for TLS encryption. Must be ``off``,
                                                   ``onconnect``, ``starttls``, or ``starttlsrequire``.
 
