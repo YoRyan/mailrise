@@ -118,7 +118,7 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
 
     yml_listen = yml.get('listen', {})
 
-    prefer_plain = yml.get('prefer_plain', False)
+    prefer_plain = yml.get('prefer_plain', True)
 
     yml_tls = yml.get('tls', {})
     # "off" is a boolean value in YAML, so it will get parsed as False.
