@@ -138,7 +138,7 @@ From source
 This repository is structured like any other Python package. To install it in
 editable mode for development or debugging purposes, use::
 
-    pip install -e .
+    pip install -e .[testing]
 
 To build a wheel, use::
 
