@@ -169,7 +169,7 @@ def _parse_simple_key(logger: Logger, key: str) -> _Key:
     def fatal():
         logger.critical(
             "Invalid config key '%s'; should be a string or an email address "
-            'without periods in the username')
+            'without periods in the username', key)
         raise SystemExit(1)
     if '@' in key:
         user, domain = _parseaddrparts(key)
