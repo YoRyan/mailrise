@@ -66,6 +66,7 @@ class MailriseConfig(NamedTuple):
         logger: The logger, which is used to record interesting events.
         listen_host: The network address to listen on.
         listen_port: The network port to listen on.
+        prefer_plain: prefer text/plain over text/html email.
         tls_mode: The TLS encryption mode.
         tls_certfile: The path to the TLS certificate chain file.
         tls_keyfile: The path to the TLS key file.
@@ -77,6 +78,7 @@ class MailriseConfig(NamedTuple):
     logger: Logger
     listen_host: str
     listen_port: int
+    prefer_plain: bool
     tls_mode: TLSMode
     tls_certfile: typ.Optional[str]
     tls_keyfile: typ.Optional[str]
@@ -116,6 +118,8 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
 
     yml_listen = yml.get('listen', {})
 
+    prefer_plain = yml.get('prefer_plain', True)
+
     yml_tls = yml.get('tls', {})
     # "off" is a boolean value in YAML, so it will get parsed as False.
     yml_tls_mode = (yml_tls.get('mode', False) or "off").upper()
@@ -153,6 +157,7 @@ def load_config(logger: Logger, file: io.TextIOWrapper) -> MailriseConfig:
         logger=logger,
         listen_host=yml_listen.get('host', ''),
         listen_port=yml_listen.get('port', 8025),
+        prefer_plain=prefer_plain,
         tls_mode=tls_mode,
         tls_certfile=tls_certfile,
         tls_keyfile=tls_keyfile,

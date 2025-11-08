@@ -69,7 +69,7 @@ class AppriseHandler(typ.NamedTuple):
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, StdlibEmailMessage)
         try:
-            notification = _parsemessage(message, envelope)
+            notification = _parsemessage(message, envelope, self.config.prefer_plain)
         except UnreadableMultipart as mpe:
             subparts = \
                 ' '.join(part.get_content_type() for part in mpe.message.iter_parts())
@@ -97,7 +97,7 @@ class AppriseHandler(typ.NamedTuple):
         return '250 OK'
 
 
-def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope) -> r.EmailMessage:
+def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope, prefer_plain: bool) -> r.EmailMessage:
     """Parses an email message into an `EmailNotification`.
 
     Args:
@@ -106,18 +106,14 @@ def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope) -> r.EmailMessage
     Returns:
         The `EmailNotification` instance.
     """
-    py_body_part = msg.get_body()
+    if prefer_plain:
+        py_body_part = msg.get_body(preferencelist=('plain', 'html'))
+    else:
+        py_body_part = msg.get_body(preferencelist=('html', 'plain'))
     body: typ.Optional[tuple[str, apprise.NotifyFormat]]
     if isinstance(py_body_part, StdlibEmailMessage):
-        body_part: StdlibEmailMessage
-        try:
-            py_body_part.get_content()
-        except KeyError:  # stdlib failed to read the content, which means multipart
-            body_part = _getmultiparttext(py_body_part)
-        else:
-            body_part = py_body_part
-        body_content = contentmanager.raw_data_manager.get_content(body_part)
-        is_html = body_part.get_content_subtype() == 'html'
+        body_content = contentmanager.raw_data_manager.get_content(py_body_part)
+        is_html = py_body_part.get_content_subtype() == 'html'
         body = (body_content.strip(),
                 apprise.NotifyFormat.HTML if is_html else apprise.NotifyFormat.TEXT)
     else:
@@ -134,23 +130,6 @@ def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope) -> r.EmailMessage
         body_format=body[1] if body else apprise.NotifyFormat.TEXT,
         attachments=attachments
     )
-
-
-def _getmultiparttext(msg: StdlibEmailMessage) -> StdlibEmailMessage:
-    """Search for the textual body part of a multipart email."""
-    content_type = msg.get_content_type()
-    if content_type in ('multipart/related', 'multipart/alternative'):
-        parts = list(msg.iter_parts())
-        # Look for these types of parts in descending order.
-        for parttype in ('multipart/alternative', 'multipart/related',
-                         'text/html', 'text/plain'):
-            found = \
-                next((p for p in parts if isinstance(p, StdlibEmailMessage)
-                     and p.get_content_type() == parttype), None)
-            if found is not None:
-                return _getmultiparttext(found)
-        raise UnreadableMultipart(msg)
-    return msg
 
 
 def _parseattachment(part: StdlibEmailMessage) -> r.EmailAttachment:
