@@ -15,18 +15,11 @@ from tempfile import NamedTemporaryFile
 
 import apprise
 from aiosmtpd.smtp import Envelope, Session, SMTP
+from apprise.attachment import AttachBase
 from apprise.common import ContentLocation
 
 from mailrise.config import MailriseConfig
 import mailrise.router as r
-
-# Mypy, for some reason, considers AttachBase a module, not a class.
-MYPY = False
-# pylint: disable=ungrouped-imports
-if MYPY:
-    from apprise.attachment.AttachBase import AttachBase
-else:
-    from apprise.attachment import AttachBase
 
 
 class AppriseNotifyFailure(Exception):
@@ -72,7 +65,7 @@ class AppriseHandler(typ.NamedTuple):
         """Called during DATA after the entire message ('SMTP content' as described
         in RFC 5321) has been received."""
         assert isinstance(envelope.content, bytes)
-        parser = BytesParser(policy=email.policy.default)
+        parser = BytesParser(policy=email.policy.default) # type: ignore
         message = parser.parsebytes(envelope.content)
         assert isinstance(message, StdlibEmailMessage)
         try:
@@ -241,6 +234,5 @@ class _AttachMailrise(AttachBase):
         return f'mailrise://{hex(id(self))}'
 
     @staticmethod
-    def parse_url(url: str, verify_host: bool = True,
-                  mimetype_db: typ.Any = None) -> typ.Dict[str, typ.Any]:
+    def parse_url(url: str, **kwargs: typ.Any) -> typ.Dict[str, typ.Any]: # type: ignore
         return {}
