@@ -29,4 +29,4 @@ jobs:
         name: Build and Push
         uses: ./.github/actions/docker-build
         with:
-          images: ghcr.io/YoRyan/mailrise
+          images: ghcr.io/${{ github.repository }}
