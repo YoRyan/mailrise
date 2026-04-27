@@ -159,7 +159,7 @@ sub-dictionaries):
 ====================================== ========== ==========================================================================
 Key                                    Type       Value
 ====================================== ========== ==========================================================================
-configs.<name>                         dictionary ``<name>`` denotes the email address associated with the configuration.
+configs.<name>                         dictionary ``<name>`` denotes the recipient email address associated with the configuration.
                                                   Senders should address their emails to this address. ``<name>`` can be a
                                                   full email address, such as ``notify@mydomain.com``, or it can be a
                                                   username only, such as ``notify``, in which case the default
@@ -182,6 +182,10 @@ configs.<name>                         dictionary ``<name>`` denotes the email a
 
                                                   In addition to the Apprise configuration, some Mailrise-exclusive options
                                                   can be specified under this key. See the ``mailrise`` options below.
+configs.<sender>.<recipient>           dictionary For sender-scoped routing, nest recipient configurations under a sender
+                                                  address. The ``<sender>`` and ``<recipient>`` keys use the same address
+                                                  and pattern rules as ``configs.<name>``. To match any recipient from a
+                                                  sender, use ``*@*`` as the recipient key.
 configs.<name>.mailrise.title_template string     The template string used to create notification titles. See "Template
                                                   strings" below.
 
@@ -318,6 +322,17 @@ underlying JSON structure, a useful aid.
       "my_cool_name@*.net":
         urls:
           - pover://USER_KEY@TOKEN
+
+      # You can route by sender and recipient by nesting recipient targets
+      # under sender addresses.
+      #
+      "monitoring@example.com":
+        "alerts@mycooldomain.com":
+          urls:
+            - pover://USER_KEY@TOKEN
+        "*@*":
+          urls:
+            - discord://WEBHOOK_ID/WEBHOOK_TOKEN
 
       # Wildcard targets are evaluated in the order they appear in the
       # configuration file, and Mailrise uses the first match. So, this config

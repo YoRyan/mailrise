@@ -111,9 +111,8 @@ class SimpleRouter(Router):  # pylint: disable=too-few-public-methods
     async def email_to_apprise(
         self, logger: Logger, email: EmailMessage, auth_data: typ.Any, **kwargs) \
             -> typ.AsyncGenerator[AppriseNotification, None]:
-        
         sender_addr = email.from_
-        for addr in [email.to]:
+        for addr in email.to:
             try:
                 sender_mail = _parsercpt(sender_addr)
                 rcpt = _parsercpt(addr)
@@ -174,12 +173,11 @@ def load_from_yaml(logger: Logger, configs_node: dict[str, typ.Any]) -> SimpleRo
         )
         
         if is_direct_config:
-            # Direct config: sender -> config (no receiver specified)
-            # Use "*@*" as default receiver
-            default_recv = "*@*"
+            # Legacy direct config: receiver -> config.
+            default_sender = "*@*"
             senders.append((
+                _parse_simple_key(logger, default_sender),
                 _parse_simple_key(logger, sender_key),
-                _parse_simple_key(logger, default_recv),
                 _load_simple_sender(logger, sender_key, rev_config)
             ))
         else:
