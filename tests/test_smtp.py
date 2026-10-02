@@ -58,6 +58,33 @@ def test_multipart() -> None:
     assert notification.body_format == apprise.NotifyFormat.HTML
 
 
+def test_multipart_nested_related() -> None:
+    """Tests for email message parsing with nested multipart/related containing HTML and images."""
+    img_name = 'bridge.jpg'
+    with open(Path(__file__).parent/img_name, 'rb') as file:
+        img_data = file.read()
+
+    msg = EmailMessage()
+    msg['From'] = 'sender@example.com'
+    msg['Subject'] = 'Nested Related Test'
+    msg.set_content('Plain text version')
+    msg.add_alternative('<strong>HTML version with related image</strong>', subtype='html')
+    html_part = msg.get_body(preferencelist=('html',))
+    assert html_part is not None
+    html_part.add_related(
+        img_data,
+        maintype='image',
+        subtype='jpeg',
+        cid='<logo.jpg>'
+    )
+
+    notification = _parsemessage(msg, Envelope())
+    assert notification.subject == 'Nested Related Test'
+    assert notification.from_ == 'sender@example.com'
+    assert notification.body == '<strong>HTML version with related image</strong>'
+    assert notification.body_format == apprise.NotifyFormat.HTML
+
+
 def test_parseattachments() -> None:
     """Tests for email message parsing with attachments."""
     img_name = 'bridge.jpg'

@@ -106,7 +106,7 @@ def _parsemessage(msg: StdlibEmailMessage, envelope: Envelope) -> r.EmailMessage
     Returns:
         The `EmailNotification` instance.
     """
-    py_body_part = msg.get_body()
+    py_body_part = msg.get_body(preferencelist=('html', 'plain'))
     body: typ.Optional[tuple[str, apprise.NotifyFormat]]
     if isinstance(py_body_part, StdlibEmailMessage):
         body_part: StdlibEmailMessage
